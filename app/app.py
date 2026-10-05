@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
 
 from src.pipeline import load_and_process_data
 from src.intervention import recommend_actions
+from src.scenario import simulate_rainfall
 
 
 st.set_page_config(
@@ -148,6 +149,65 @@ with right:
         hide_index=True,
     )
 
+
+st.divider()
+
+st.subheader("What-If Rainfall Simulator")
+
+scenario_village = st.selectbox(
+    "Select a location for simulation",
+    df["village"].tolist(),
+    key="scenario_village",
+)
+
+scenario_row = df[df["village"] == scenario_village].iloc[0]
+
+rainfall_change = st.slider(
+    "Simulated rainfall change (%)",
+    min_value=-50,
+    max_value=100,
+    value=0,
+    step=10,
+)
+
+scenario = simulate_rainfall(
+    scenario_row,
+    rainfall_change,
+)
+
+original_rule_score = float(scenario_row["risk_score"])
+risk_change = round(
+    scenario["risk_score"] - original_rule_score,
+    2,
+)
+
+s1, s2, s3, s4 = st.columns(4)
+
+s1.metric(
+    "Original Rainfall",
+    f"{scenario['original_rainfall']} mm",
+)
+
+s2.metric(
+    "Simulated Rainfall",
+    f"{scenario['simulated_rainfall']} mm",
+)
+
+s3.metric(
+    "Scenario Risk",
+    f"{scenario['risk_score']}/100",
+    delta=f"{risk_change:+.2f}",
+)
+
+s4.metric(
+    "Scenario Level",
+    scenario["risk_level"],
+)
+
+st.caption(
+    "Scenario risk is calculated using the explainable rule-based engine. "
+    "AI anomaly scoring is not retrained for the simulated scenario."
+)
 
 st.divider()
 
