@@ -37,7 +37,7 @@ df = load_data()
 
 @st.cache_data
 def load_wqmis_data():
-    path = ROOT / "data" / "processed" / "wqmis_up_2025_2026_risk.csv"
+    path = ROOT / "data" / "processed" / "wqmis_up_2026_2027_risk.csv"
     return pd.read_csv(path)
 
 
@@ -298,7 +298,7 @@ st.divider()
 st.subheader("Verified Government Water-Quality Intelligence")
 
 st.caption(
-    "Source: JJM / WQMIS WQ6 | Financial Year: 2025-2026 | "
+    "Source: JJM / WQMIS WQ6 | Financial Year: 2026-2027 | "
     "PWS | Sample Location: All"
 )
 

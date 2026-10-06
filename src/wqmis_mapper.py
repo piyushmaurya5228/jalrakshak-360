@@ -25,10 +25,7 @@ WQ6_COLUMNS = [
 ]
 
 
-def build_wqmis_risk_data(
-    input_file="data/raw/wqmis_up_2025_2026.csv",
-    output_file="data/processed/wqmis_up_2025_2026_risk.csv",
-):
+def build_wqmis_risk_data(input_file, output_file):
     """Create a relative contamination-burden dataset from WQ6 counts."""
 
     df = pd.read_csv(input_file)
@@ -80,10 +77,13 @@ def build_wqmis_risk_data(
 
 
 if __name__ == "__main__":
-    result = build_wqmis_risk_data()
+    input_file = "data/raw/wqmis_up_2026_2027.csv"
+    output_file = "data/processed/wqmis_up_2026_2027_risk.csv"
+
+    result = build_wqmis_risk_data(input_file, output_file)
 
     print("Rows:", len(result))
-    print("Output:", "data/processed/wqmis_up_2025_2026_risk.csv")
+    print("Output:", output_file)
     print(
         "Non-zero contamination:",
         int((result["contamination_burden"] > 0).sum()),
