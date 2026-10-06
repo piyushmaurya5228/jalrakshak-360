@@ -34,6 +34,15 @@ def load_data():
 
 df = load_data()
 
+
+@st.cache_data
+def load_wqmis_data():
+    path = ROOT / "data" / "processed" / "wqmis_up_2025_2026_risk.csv"
+    return pd.read_csv(path)
+
+
+wqmis_df = load_wqmis_data()
+
 st.sidebar.header("Filters")
 
 districts = ["All"] + sorted(df["district"].unique().tolist())
@@ -282,3 +291,124 @@ if len(filtered) > 0:
 
 else:
     st.warning("No locations match the selected filters.")
+
+
+st.divider()
+
+st.subheader("Verified Government Water-Quality Intelligence")
+
+st.caption(
+    "Source: JJM / WQMIS WQ6 | Financial Year: 2025-2026 | "
+    "PWS | Sample Location: All"
+)
+
+st.info(
+    "WQ6 values below represent reported contamination indicators/counts. "
+    "They are not raw concentration measurements and are not yet fused into "
+    "the final AI risk score."
+)
+
+w1, w2, w3, w4 = st.columns(4)
+
+contaminated_districts = int(
+    (wqmis_df["contamination_burden"] > 0).sum()
+)
+
+total_indicators = int(
+    wqmis_df["contamination_burden"].sum()
+)
+
+top_district = (
+    wqmis_df.sort_values(
+        "contamination_burden",
+        ascending=False,
+    ).iloc[0]
+)
+
+w1.metric("Districts Reported", len(wqmis_df))
+w2.metric("Districts with Contamination", contaminated_districts)
+w3.metric("Total Contamination Indicators", total_indicators)
+w4.metric(
+    "Highest Burden",
+    f"{top_district['State']} ({int(top_district['contamination_burden'])})",
+)
+
+st.write("### Highest Contamination Burden")
+
+top10 = (
+    wqmis_df[
+        ["State", "contamination_burden"]
+    ]
+    .sort_values("contamination_burden", ascending=False)
+    .head(10)
+    .reset_index(drop=True)
+)
+
+top10.columns = [
+    "District",
+    "Contamination Indicators",
+]
+
+st.dataframe(
+    top10,
+    use_container_width=True,
+    hide_index=True,
+)
+
+st.write("### District-wise WQ6 Detail")
+
+wqmis_district = st.selectbox(
+    "Select a district",
+    sorted(wqmis_df["State"].unique().tolist()),
+    key="wqmis_district",
+)
+
+wqmis_row = wqmis_df[
+    wqmis_df["State"] == wqmis_district
+].iloc[0]
+
+parameter_map = {
+    "pH": "PH",
+    "TDS": "TDS",
+    "Turbidity": "Turbidity",
+    "Chloride": "Chloride",
+    "Alkalinity": "Total_Alkalinity",
+    "Hardness": "Total_Hardness",
+    "Sulphate": "Sulphate",
+    "Iron": "Iron",
+    "Arsenic": "Total_Arsenic",
+    "Fluoride": "Fluoride",
+    "Nitrate": "Nitrate",
+    "Residual Chlorine": "Residual_Chlorine",
+    "Bacteriological": "Bacteriologial_Contamination",
+    "Total Coliform": "TotalColiform",
+    "E. coli": "TotalEcoil",
+}
+
+detail_rows = []
+
+for label, column in parameter_map.items():
+    detail_rows.append(
+        {
+            "Parameter": label,
+            "Reported Indicators": int(wqmis_row[column]),
+        }
+    )
+
+detail_df = pd.DataFrame(detail_rows)
+detail_df = detail_df[
+    detail_df["Reported Indicators"] > 0
+].sort_values(
+    "Reported Indicators",
+    ascending=False,
+)
+
+if len(detail_df) > 0:
+    st.bar_chart(
+        detail_df.set_index("Parameter"),
+        y="Reported Indicators",
+    )
+else:
+    st.success(
+        f"No non-zero WQ6 contamination indicators reported for {wqmis_district}."
+    )
