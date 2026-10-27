@@ -603,3 +603,92 @@ else:
         "Population mapping file not found. Run the Census population "
         "mapping step to generate it."
     )
+
+
+st.divider()
+
+st.subheader("Multi-Source Data Status")
+
+st.caption(
+    "Combined environmental and population context for prototype locations"
+)
+
+fusion_path = (
+    ROOT / "data" / "processed" / "multi_source_fusion.csv"
+)
+
+if fusion_path.exists():
+    fusion_df = pd.read_csv(fusion_path)
+
+    c1, c2, c3, c4 = st.columns(4)
+
+    c1.metric("Locations", len(fusion_df))
+
+    c2.metric(
+        "Rainfall Source",
+        "ERA5",
+    )
+
+    c3.metric(
+        "Population Reference",
+        "Census 2011",
+    )
+
+    c4.metric(
+        "Groundwater in Risk Score",
+        "No",
+    )
+
+    st.info(
+        "Rainfall uses ERA5-based reanalysis estimates. Population figures "
+        "are historical district-level Census 2011 data, not village-level "
+        "population. Groundwater telemetry is displayed for monitoring only "
+        "because its readings require interpretation review. WQ6 is not "
+        "merged because the current WQ6 integration covers Uttar Pradesh "
+        "while these prototype locations are in Uttarakhand."
+    )
+
+    display_columns = [
+        "location_id",
+        "district",
+        "rainfall_7d",
+        "rainfall_normal",
+        "district_population_2011",
+        "nearest_station",
+        "distance_km",
+        "freshness_status",
+        "reading_sign_status",
+        "wq6_data_status",
+    ]
+
+    display_df = fusion_df[display_columns].copy()
+
+    display_df.columns = [
+        "Location ID",
+        "District",
+        "Rainfall 7d (mm)",
+        "Historical Baseline (mm)",
+        "District Population (2011)",
+        "Nearest Groundwater Station",
+        "Station Distance (km)",
+        "Groundwater Freshness",
+        "Reading Interpretation",
+        "WQ6 Integration Status",
+    ]
+
+    st.dataframe(
+        display_df,
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    st.caption(
+        "This panel combines data for inspection and traceability. "
+        "It does not modify the existing final risk score."
+    )
+
+else:
+    st.warning(
+        "Multi-source fusion file not found. Run "
+        "scripts/build_multi_source_fusion.py first."
+    )
