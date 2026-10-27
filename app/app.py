@@ -27,7 +27,15 @@ st.caption("AI-powered drinking-water risk monitoring and intervention prioritis
 
 @st.cache_data
 def load_data():
-    path = ROOT / "data" / "sample" / "water_risk_sample.csv"
+    processed_path = (
+        ROOT / "data" / "processed" / "water_risk_with_rainfall.csv"
+    )
+    sample_path = ROOT / "data" / "sample" / "water_risk_sample.csv"
+
+    # Prefer the processed dataset with verified-source rainfall estimates.
+    # Fall back to the original prototype dataset if it is unavailable.
+    path = processed_path if processed_path.exists() else sample_path
+
     df, _ = load_and_process_data(path)
     return df
 
