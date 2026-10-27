@@ -420,3 +420,112 @@ else:
     st.success(
         f"No non-zero WQ6 contamination indicators reported for {wqmis_district}."
     )
+
+
+st.divider()
+
+st.subheader("Groundwater Telemetry Coverage (Data Quality Review)")
+
+st.caption(
+    "Source: National Water Data Portal | "
+    "Uttarakhand Department | Six-hourly telemetry"
+)
+
+st.warning(
+    "Raw telemetry readings include negative values whose interpretation "
+    "has not yet been verified. This section displays station coverage only. "
+    "Groundwater values are NOT used in the final risk score."
+)
+
+groundwater_path = (
+    ROOT / "data" / "processed" / "groundwater_station_mapping.csv"
+)
+
+if groundwater_path.exists():
+    groundwater_df = pd.read_csv(groundwater_path)
+
+    g1, g2, g3, g4 = st.columns(4)
+
+    g1.metric(
+        "Locations Mapped",
+        len(groundwater_df),
+    )
+
+    g2.metric(
+        "Stations Within 15 km",
+        int(
+            (
+                groundwater_df["distance_status"]
+                == "WITHIN_LIMIT"
+            ).sum()
+        ),
+    )
+
+    g3.metric(
+        "Stale Observations",
+        int(
+            (
+                groundwater_df["freshness_status"]
+                == "STALE_REVIEW"
+            ).sum()
+        ),
+    )
+
+    g4.metric(
+        "Readings Pending Review",
+        int(
+            (
+                groundwater_df["reading_sign_status"]
+                == "SIGN_CONVENTION_REVIEW"
+            ).sum()
+        ),
+    )
+
+    display_columns = [
+        "location_id",
+        "sample_district",
+        "nearest_station",
+        "station_district",
+        "distance_km",
+        "latest_observation",
+        "days_since_observation",
+        "raw_reading_m",
+        "distance_status",
+        "freshness_status",
+        "district_status",
+        "reading_sign_status",
+    ]
+
+    display_df = groundwater_df[display_columns].copy()
+
+    display_df.columns = [
+        "Location ID",
+        "Sample District",
+        "Nearest Station",
+        "Station District",
+        "Distance (km)",
+        "Latest Observation",
+        "Days Since Observation",
+        "Raw Reading (m; unverified)",
+        "Distance Status",
+        "Freshness Status",
+        "District Match",
+        "Reading Interpretation",
+    ]
+
+    st.dataframe(
+        display_df,
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    st.caption(
+        "Nearest-station mapping indicates geographic proximity only; "
+        "it does not establish a direct village-level groundwater measurement."
+    )
+
+else:
+    st.info(
+        "Groundwater mapping report not found. Run "
+        "scripts/fetch_groundwater_telemetry.py to generate it."
+    )
