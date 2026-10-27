@@ -529,3 +529,77 @@ else:
         "Groundwater mapping report not found. Run "
         "scripts/fetch_groundwater_telemetry.py to generate it."
     )
+
+
+st.divider()
+
+st.subheader("Population Context (Census 2011 - District-Level)")
+
+st.caption(
+    "Source: Census of India 2011, Primary Census Abstract"
+)
+
+st.warning(
+    "These are historical district-level population figures, not current "
+    "or village-level population estimates. They are displayed for context "
+    "and are NOT directly used in the final risk score."
+)
+
+population_path = (
+    ROOT / "data" / "processed" / "population_exposure_features.csv"
+)
+
+if population_path.exists():
+    population_df = pd.read_csv(population_path)
+
+    p1, p2, p3 = st.columns(3)
+
+    p1.metric(
+        "Locations Mapped",
+        len(population_df),
+    )
+
+    p2.metric(
+        "Districts Covered",
+        population_df["sample_district"].nunique(),
+    )
+
+    p3.metric(
+        "Census Reference Year",
+        "2011",
+    )
+
+    display_columns = [
+        "location_id",
+        "sample_district",
+        "census_district_name_2011",
+        "district_population_2011",
+        "district_households_2011",
+    ]
+
+    display_df = population_df[display_columns].copy()
+
+    display_df.columns = [
+        "Location ID",
+        "Sample District",
+        "Census District Name",
+        "District Population (2011)",
+        "District Households (2011)",
+    ]
+
+    st.dataframe(
+        display_df,
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    st.caption(
+        "Multiple prototype locations can map to the same district. "
+        "Do not sum repeated district population figures across locations."
+    )
+
+else:
+    st.info(
+        "Population mapping file not found. Run the Census population "
+        "mapping step to generate it."
+    )

@@ -1,0 +1,13 @@
+location_id,state,sample_district,village_placeholder,latitude,longitude,census_district_name_2011,district_population_2011,district_households_2011,district_male_population_2011,district_female_population_2011,district_population_age_0_6_2011,population_reference_year,population_geography_level,population_source,population_is_village_level
+1,Uttarakhand,Dehradun,Village_A,30.3165,78.0322,Dehradun,1696694,347001,892199,804495,201652,2011,DISTRICT,Census of India 2011 Primary Census Abstract,False
+2,Uttarakhand,Dehradun,Village_B,30.205,77.95,Dehradun,1696694,347001,892199,804495,201652,2011,DISTRICT,Census of India 2011 Primary Census Abstract,False
+3,Uttarakhand,Haridwar,Village_C,29.9457,78.1642,Hardwar,1890422,338104,1005295,885127,285693,2011,DISTRICT,Census of India 2011 Primary Census Abstract,False
+4,Uttarakhand,Haridwar,Village_D,29.87,78.02,Hardwar,1890422,338104,1005295,885127,285693,2011,DISTRICT,Census of India 2011 Primary Census Abstract,False
+5,Uttarakhand,Nainital,Village_E,29.3919,79.4542,Nainital,954605,191383,493666,460939,124272,2011,DISTRICT,Census of India 2011 Primary Census Abstract,False
+6,Uttarakhand,Nainital,Village_F,29.25,79.55,Nainital,954605,191383,493666,460939,124272,2011,DISTRICT,Census of India 2011 Primary Census Abstract,False
+7,Uttarakhand,Pauri Garhwal,Village_G,30.15,78.78,Garhwal,687271,161778,326829,360442,83901,2011,DISTRICT,Census of India 2011 Primary Census Abstract,False
+8,Uttarakhand,Pauri Garhwal,Village_H,30.05,78.62,Garhwal,687271,161778,326829,360442,83901,2011,DISTRICT,Census of India 2011 Primary Census Abstract,False
+9,Uttarakhand,Tehri Garhwal,Village_I,30.38,78.48,Tehri Garhwal,618931,132714,297986,320945,84657,2011,DISTRICT,Census of India 2011 Primary Census Abstract,False
+10,Uttarakhand,Tehri Garhwal,Village_J,30.29,78.4,Tehri Garhwal,618931,132714,297986,320945,84657,2011,DISTRICT,Census of India 2011 Primary Census Abstract,False
+11,Uttarakhand,Udham Singh Nagar,Village_K,29.0,79.5,Udham Singh Nagar,1648902,308581,858783,790119,229162,2011,DISTRICT,Census of India 2011 Primary Census Abstract,False
+12,Uttarakhand,Udham Singh Nagar,Village_L,28.93,79.7,Udham Singh Nagar,1648902,308581,858783,790119,229162,2011,DISTRICT,Census of India 2011 Primary Census Abstract,False
