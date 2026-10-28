@@ -1,4 +1,4 @@
-﻿import sys
+import sys
 from pathlib import Path
 
 import pandas as pd
@@ -494,6 +494,11 @@ if groundwater_path.exists():
         "freshness_status",
         "district_status",
         "reading_sign_status",
+        "nearest_same_district_station",
+        "same_district_distance_km",
+        "same_district_distance_status",
+        "same_district_freshness_status",
+        "same_district_reading_sign_status",
     ]
 
     display_df = groundwater_df[display_columns].copy()
@@ -511,6 +516,11 @@ if groundwater_path.exists():
         "Freshness Status",
         "District Match",
         "Reading Interpretation",
+        "Nearest Same-District Station",
+        "Same-District Distance (km)",
+        "Same-District Distance Status",
+        "Same-District Freshness",
+        "Same-District Reading Review",
     ]
 
     st.dataframe(

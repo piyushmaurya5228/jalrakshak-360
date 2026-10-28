@@ -1,4 +1,4 @@
-﻿"""Build a location-level multi-source dataset for JalRakshak 360.
+"""Build a location-level multi-source dataset for JalRakshak 360.
 
 This script merges source datasets for analysis and traceability.
 It does not change or calculate final risk scores.
@@ -80,6 +80,16 @@ def main():
         [
             "nearest_station",
             "station_district",
+            "nearest_same_district_station",
+            "same_district_station_district",
+            "same_district_station_latitude",
+            "same_district_station_longitude",
+            "same_district_distance_km",
+            "same_district_distance_status",
+            "same_district_latest_observation",
+            "same_district_days_since_observation",
+            "same_district_freshness_status",
+            "same_district_reading_sign_status",
             "distance_km",
             "latest_observation",
             "days_since_observation",
@@ -125,6 +135,16 @@ def main():
         "location_id",
         "nearest_station",
         "station_district",
+        "nearest_same_district_station",
+        "same_district_station_district",
+        "same_district_station_latitude",
+        "same_district_station_longitude",
+        "same_district_distance_km",
+        "same_district_distance_status",
+        "same_district_latest_observation",
+        "same_district_days_since_observation",
+        "same_district_freshness_status",
+        "same_district_reading_sign_status",
         "station_latitude",
         "station_longitude",
         "distance_km",
@@ -205,6 +225,9 @@ def main():
         "district_population_2011",
         "nearest_station",
         "distance_km",
+        "nearest_same_district_station",
+        "same_district_distance_km",
+        "same_district_distance_status",
         "groundwater_data_status",
         "wq6_data_status",
     ]

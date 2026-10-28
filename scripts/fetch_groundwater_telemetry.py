@@ -1,4 +1,4 @@
-﻿"""Fetch and audit Uttarakhand groundwater telemetry."""
+"""Fetch and audit Uttarakhand groundwater telemetry."""
 
 from pathlib import Path
 from datetime import datetime
@@ -37,16 +37,35 @@ def haversine(lat1, lon1, lat2, lon2):
     return 6371 * 2 * asin(sqrt(value))
 
 
-def main():
-    print("Fetching official groundwater telemetry...")
+def find_nearest_same_district_station(candidates, sample_district):
+    """Return the nearest station in the sample district, or None."""
+    same_district = candidates.loc[
+        candidates["District"].astype(str).str.strip().str.casefold()
+        == str(sample_district).strip().casefold()
+    ]
 
-    response = requests.get(URL, timeout=(10, 120))
-    response.raise_for_status()
+    if same_district.empty:
+        return None
 
-    RAW.parent.mkdir(parents=True, exist_ok=True)
+    return same_district.sort_values("distance_km").iloc[0]
+
+
+def main(fetch_source=True):
+    if fetch_source:
+        print("Fetching official groundwater telemetry...")
+        response = requests.get(URL, timeout=(10, 120))
+        response.raise_for_status()
+
+        RAW.parent.mkdir(parents=True, exist_ok=True)
+        RAW.write_bytes(response.content)
+    else:
+        if not RAW.exists():
+            raise FileNotFoundError(
+                f"Cached groundwater source not found: {RAW}"
+            )
+        print("Using cached groundwater telemetry (no download).")
+
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    RAW.write_bytes(response.content)
-
     gw = pd.read_csv(RAW)
     sample = pd.read_csv(SAMPLE)
 
@@ -104,6 +123,47 @@ def main():
         days_old = (run_date - station[date_col].date()).days
         reading = station[level_col]
 
+        # Keep the nearest same-district option separate from nearest overall.
+        local_station = find_nearest_same_district_station(
+            candidates, loc["district"]
+        )
+
+        if local_station is None:
+            local_station_name = None
+            local_station_district = None
+            local_station_latitude = None
+            local_station_longitude = None
+            local_distance = None
+            local_latest_observation = None
+            local_days_old = None
+            local_distance_status = "NO_SAME_DISTRICT_STATION"
+            local_freshness_status = "NO_SAME_DISTRICT_STATION"
+            local_reading_sign_status = "NO_SAME_DISTRICT_STATION"
+        else:
+            local_station_name = local_station["Station"]
+            local_station_district = local_station["District"]
+            local_station_latitude = local_station["Latitude"]
+            local_station_longitude = local_station["Longitude"]
+            local_distance = float(local_station["distance_km"])
+            local_latest_observation = local_station[date_col]
+            local_days_old = (
+                run_date - local_latest_observation.date()
+            ).days
+
+            local_distance_status = (
+                "WITHIN_LIMIT"
+                if local_distance <= DISTANCE_LIMIT_KM
+                else "DISTANT_REVIEW"
+            )
+            local_freshness_status = (
+                "RECENT"
+                if 0 <= local_days_old <= FRESHNESS_LIMIT_DAYS
+                else "STALE_REVIEW"
+            )
+
+            # A positive value is not proof that the source convention is valid.
+            local_reading_sign_status = "SIGN_CONVENTION_REVIEW"
+
         same_district = (
             str(loc["district"]).strip().casefold()
             == str(station["District"]).strip().casefold()
@@ -114,6 +174,21 @@ def main():
             "sample_district": loc["district"],
             "sample_latitude": loc["latitude"],
             "sample_longitude": loc["longitude"],
+            "nearest_same_district_station": local_station_name,
+            "same_district_station_district": local_station_district,
+            "same_district_station_latitude": local_station_latitude,
+            "same_district_station_longitude": local_station_longitude,
+            "same_district_distance_km": (
+                round(local_distance, 2)
+                if local_distance is not None else None
+            ),
+            "same_district_distance_status": local_distance_status,
+            "same_district_latest_observation": local_latest_observation,
+            "same_district_days_since_observation": local_days_old,
+            "same_district_freshness_status": local_freshness_status,
+            "same_district_reading_sign_status": (
+                local_reading_sign_status
+            ),
             "nearest_station": station["Station"],
             "station_district": station["District"],
             "station_latitude": station["Latitude"],
@@ -135,11 +210,8 @@ def main():
             "district_status": (
                 "SAME_DISTRICT" if same_district else "CROSS_DISTRICT"
             ),
-            "reading_sign_status": (
-                "NON_NEGATIVE"
-                if pd.notna(reading) and reading >= 0
-                else "SIGN_CONVENTION_REVIEW"
-            ),
+            # Keep all readings under review until the source convention is verified.
+            "reading_sign_status": "SIGN_CONVENTION_REVIEW",
             # No raw reading is approved for risk fusion yet.
             "eligible_for_risk_fusion": False,
         })
@@ -158,6 +230,10 @@ def main():
             "location_id",
             "nearest_station",
             "distance_km",
+            "nearest_same_district_station",
+            "same_district_distance_km",
+            "same_district_distance_status",
+            "same_district_freshness_status",
             "days_since_observation",
             "distance_status",
             "freshness_status",
@@ -170,4 +246,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--offline",
+        action="store_true",
+        help="Use the cached raw CSV without downloading new source data.",
+    )
+    args = parser.parse_args()
+    main(fetch_source=not args.offline)
