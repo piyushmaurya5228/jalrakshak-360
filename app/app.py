@@ -543,6 +543,142 @@ else:
 
 st.divider()
 
+st.subheader("Groundwater Telemetry Quality Audit")
+
+st.caption(
+    "Station-level audit of the downloaded six-hourly groundwater telemetry. "
+    "This panel reports data-quality flags, not groundwater risk scores."
+)
+
+st.warning(
+    "The source measurement convention remains unverified and RL_MSL is missing "
+    "from the downloaded records. Large-change flags require investigation; "
+    "they are not proof of groundwater failure. Groundwater is NOT used in "
+    "the final risk score."
+)
+
+audit_path = (
+    ROOT / "data" / "processed" / "groundwater_station_quality_audit.csv"
+)
+
+if audit_path.exists():
+    audit_df = pd.read_csv(audit_path)
+
+    required_audit_columns = [
+        "District",
+        "Station",
+        "records",
+        "rl_msl_missing_records",
+        "consecutive_pairs",
+        "changes_over_threshold",
+        "largest_absolute_change_m",
+        "sign_review_status",
+        "rl_msl_status",
+        "rapid_change_status",
+        "exploratory_jump_threshold_m",
+        "exploratory_max_gap_hours",
+    ]
+
+    missing_audit_columns = sorted(
+        set(required_audit_columns) - set(audit_df.columns)
+    )
+
+    if missing_audit_columns:
+        st.error(
+            "The groundwater audit report is missing expected columns: "
+            + ", ".join(missing_audit_columns)
+        )
+    else:
+        numeric_changes = pd.to_numeric(
+            audit_df["changes_over_threshold"], errors="coerce"
+        ).fillna(0)
+
+        flagged_df = audit_df.loc[numeric_changes > 0].copy()
+        total_records = int(
+            pd.to_numeric(audit_df["records"], errors="coerce")
+            .fillna(0)
+            .sum()
+        )
+        missing_rl_records = int(
+            pd.to_numeric(
+                audit_df["rl_msl_missing_records"], errors="coerce"
+            ).fillna(0).sum()
+        )
+        total_flagged_changes = int(numeric_changes.sum())
+
+        m1, m2, m3, m4 = st.columns(4)
+
+        m1.metric("Stations Audited", len(audit_df))
+        m2.metric("Stations Flagged", len(flagged_df))
+        m3.metric("Large Changes Flagged", total_flagged_changes)
+        m4.metric(
+            "Missing RL_MSL Records",
+            f"{missing_rl_records:,} / {total_records:,}",
+        )
+
+        threshold_values = pd.to_numeric(
+            audit_df["exploratory_jump_threshold_m"], errors="coerce"
+        ).dropna()
+        gap_values = pd.to_numeric(
+            audit_df["exploratory_max_gap_hours"], errors="coerce"
+        ).dropna()
+
+        threshold = (
+            float(threshold_values.iloc[0])
+            if not threshold_values.empty else 10.0
+        )
+        gap_hours = (
+            float(gap_values.iloc[0])
+            if not gap_values.empty else 12.0
+        )
+
+        st.caption(
+            f"Exploratory audit rule: absolute change greater than "
+            f"{threshold:g} m between consecutive observations no more than "
+            f"{gap_hours:g} hours apart. These thresholds are not official "
+            f"groundwater standards."
+        )
+
+        if not flagged_df.empty:
+            flagged_columns = [
+                "District",
+                "Station",
+                "records",
+                "changes_over_threshold",
+                "largest_absolute_change_m",
+                "sign_review_status",
+                "rl_msl_status",
+                "rapid_change_status",
+            ]
+
+            display_audit = flagged_df[flagged_columns].copy()
+            display_audit.columns = [
+                "District",
+                "Station",
+                "Records",
+                "Flagged Changes",
+                "Largest Change (m)",
+                "Reading Sign Review",
+                "RL_MSL Status",
+                "Rapid Change Status",
+            ]
+
+            st.dataframe(
+                display_audit,
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.info("No stations exceeded the exploratory change threshold.")
+
+else:
+    st.info(
+        "Groundwater quality audit report not found. Run "
+        "scripts/audit_groundwater_quality.py to generate it."
+    )
+
+st.divider()
+
 st.subheader("Population Context (Census 2011 - District-Level)")
 
 st.caption(
