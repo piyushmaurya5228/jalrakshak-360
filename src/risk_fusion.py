@@ -1,13 +1,14 @@
-﻿"""JalRakshak 360 AI + explainable risk fusion."""
+"""JalRakshak 360 AI + explainable risk fusion."""
 
 def fuse_risk_scores(rule_risk_score, anomaly_score):
     """Combine explainable risk and AI anomaly signals."""
-    final_score = (
-        0.70 * float(rule_risk_score)
-        + 0.30 * float(anomaly_score)
-    )
+    # Keep the rule-based score as a safety floor:
+    # absence of an anomaly must not make an existing risk look safer.
+    rule_score = max(0.0, min(float(rule_risk_score), 100.0))
+    anomaly_value = max(0.0, min(float(anomaly_score), 100.0))
 
-    final_score = round(max(0.0, min(final_score, 100.0)), 2)
+    weighted_score = 0.70 * rule_score + 0.30 * anomaly_value
+    final_score = round(max(rule_score, weighted_score), 2)
 
     if final_score >= 80:
         level = "CRITICAL"
