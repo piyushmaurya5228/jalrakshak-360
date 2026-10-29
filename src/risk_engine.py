@@ -12,7 +12,9 @@ def rainfall_risk(rainfall_7d, rainfall_normal):
     anomaly = ((rainfall_7d - rainfall_normal) / rainfall_normal) * 100
 
     if anomaly <= 0:
-        return 10.0
+        # Use a graded score below normal so rainfall scenarios can respond.
+        relative_rainfall = float(rainfall_7d) / float(rainfall_normal)
+        return round(clamp(relative_rainfall * 10.0, 0.0, 10.0), 2)
     if anomaly <= 25:
         return 30.0
     if anomaly <= 50:
