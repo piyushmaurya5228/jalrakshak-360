@@ -1,6 +1,7 @@
 import unittest
 import pandas as pd
 
+from src.risk_engine import rainfall_risk
 from src.scenario import simulate_rainfall
 
 
@@ -19,7 +20,7 @@ class TestScenario(unittest.TestCase):
 
         self.assertEqual(result["original_rainfall"], 82.0)
         self.assertEqual(result["simulated_rainfall"], 123.0)
-        self.assertEqual(result["rainfall_risk"], 75.0)
+        self.assertEqual(result["rainfall_risk"], 66.2)
 
     def test_rainfall_increase_changes_risk_below_normal(self):
         row = pd.Series({
@@ -40,6 +41,31 @@ class TestScenario(unittest.TestCase):
         self.assertGreater(
             increased["risk_score"], baseline["risk_score"]
         )
+
+    def test_rainfall_risk_preserves_anchor_scores(self):
+        expected = [
+            (100.0, 10.0),
+            (125.0, 30.0),
+            (150.0, 55.0),
+            (175.0, 75.0),
+            (200.0, 100.0),
+        ]
+
+        for rainfall, expected_score in expected:
+            with self.subTest(rainfall=rainfall):
+                self.assertEqual(
+                    rainfall_risk(rainfall, 100.0),
+                    expected_score,
+                )
+
+    def test_rainfall_risk_has_no_large_threshold_jumps(self):
+        for boundary in (0.0, 25.0, 50.0, 75.0):
+            before = rainfall_risk(100.0 + boundary, 100.0)
+            after = rainfall_risk(100.0 + boundary + 0.1, 100.0)
+
+            with self.subTest(boundary=boundary):
+                self.assertGreaterEqual(after, before)
+                self.assertLess(after - before, 1.0)
 
     def test_zero_change_keeps_rainfall(self):
         result = simulate_rainfall(

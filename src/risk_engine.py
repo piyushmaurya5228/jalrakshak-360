@@ -5,22 +5,37 @@ def clamp(value, minimum=0.0, maximum=100.0):
 
 
 def rainfall_risk(rainfall_7d, rainfall_normal):
-    """Convert rainfall anomaly into a 0-100 risk score."""
+    """Convert rainfall anomaly into a smoothly interpolated 0-100 score."""
     if rainfall_normal <= 0:
         return 0.0
 
-    anomaly = ((rainfall_7d - rainfall_normal) / rainfall_normal) * 100
+    anomaly = (
+        (float(rainfall_7d) - float(rainfall_normal))
+        / float(rainfall_normal)
+    ) * 100
 
+    # Preserve gradual scoring below normal rainfall.
     if anomaly <= 0:
-        # Use a graded score below normal so rainfall scenarios can respond.
         relative_rainfall = float(rainfall_7d) / float(rainfall_normal)
         return round(clamp(relative_rainfall * 10.0, 0.0, 10.0), 2)
-    if anomaly <= 25:
-        return 30.0
-    if anomaly <= 50:
-        return 55.0
-    if anomaly <= 75:
-        return 75.0
+
+    # Preserve existing anchor scores but interpolate between them.
+    anchors = [
+        (0.0, 10.0),
+        (25.0, 30.0),
+        (50.0, 55.0),
+        (75.0, 75.0),
+        (100.0, 100.0),
+    ]
+
+    for (left_x, left_score), (right_x, right_score) in zip(
+        anchors, anchors[1:]
+    ):
+        if anomaly <= right_x:
+            fraction = (anomaly - left_x) / (right_x - left_x)
+            score = left_score + fraction * (right_score - left_score)
+            return round(clamp(score), 2)
+
     return 100.0
 
 
