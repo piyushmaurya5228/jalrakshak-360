@@ -67,6 +67,40 @@ class TestScenario(unittest.TestCase):
                 self.assertGreaterEqual(after, before)
                 self.assertLess(after - before, 1.0)
 
+    def test_extreme_rainfall_scenarios_are_monotonic_and_bounded(self):
+        changes = [0, 100, 200, 500]
+
+        for _, row in self.df.iterrows():
+            results = [
+                simulate_rainfall(row, change)
+                for change in changes
+            ]
+
+            scores = [result["risk_score"] for result in results]
+            rainfall_scores = [
+                result["rainfall_risk"] for result in results
+            ]
+
+            with self.subTest(village=row.get("village", "unknown")):
+                self.assertTrue(
+                    all(
+                        scores[i] <= scores[i + 1]
+                        for i in range(len(scores) - 1)
+                    ),
+                    f"Risk score decreased for {row.get('village')}",
+                )
+                self.assertTrue(
+                    all(
+                        rainfall_scores[i] <= rainfall_scores[i + 1]
+                        for i in range(len(rainfall_scores) - 1)
+                    ),
+                    f"Rainfall risk decreased for {row.get('village')}",
+                )
+                self.assertTrue(all(0 <= score <= 100 for score in scores))
+                self.assertTrue(
+                    all(0 <= score <= 100 for score in rainfall_scores)
+                )
+
     def test_zero_change_keeps_rainfall(self):
         result = simulate_rainfall(
             self.df.iloc[1],
