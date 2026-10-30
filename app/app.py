@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
 from src.pipeline import load_and_process_data
 from src.intervention import recommend_actions
 from src.scenario import simulate_rainfall
+from src.explainability import explain_risk_row
 
 
 st.set_page_config(
@@ -273,6 +274,89 @@ if len(filtered) > 0:
         y="Risk Score",
     )
 
+    explanation = explain_risk_row(row)
+
+    with st.expander(
+        "View Numerical Risk Explanation",
+        expanded=False,
+    ):
+        st.write("### A. Weighted Rule-Based Contributions")
+
+        contribution_rows = [
+            ("Water contamination (35%)", explanation["water_risk_contribution"]),
+            ("Rainfall anomaly (25%)", explanation["rainfall_risk_contribution"]),
+            ("Groundwater stress (20%)", explanation["groundwater_risk_contribution"]),
+            ("Historical contamination (10%)", explanation["historical_risk_contribution"]),
+            ("Population exposure (10%)", explanation["exposure_risk_contribution"]),
+        ]
+
+        contribution_df = pd.DataFrame(
+            contribution_rows,
+            columns=["Risk Factor", "Weighted Contribution"],
+        )
+
+        st.dataframe(
+            contribution_df,
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        rc1, rc2 = st.columns(2)
+
+        rc1.metric(
+            "Stored Rule-Based Score",
+            f"{float(row['risk_score']):.2f}/100",
+        )
+
+        rc2.metric(
+            "Reconstructed Score",
+            f"{explanation['rule_score_reconstructed']:.2f}/100",
+        )
+
+        st.caption(
+            "Rounding difference: "
+            f"{explanation['rule_score_rounding_difference']:+.2f}"
+        )
+
+        st.write("### B. AI + Rule-Based Risk Fusion")
+
+        fusion_rows = [
+            ("Rule-based weighted term (70%)", explanation["weighted_rule_term"]),
+            ("AI anomaly weighted term (30%)", explanation["weighted_anomaly_term"]),
+            ("Weighted fusion candidate", explanation["fusion_candidate_score"]),
+            ("Safety-floor adjustment", explanation["rule_floor_adjustment"]),
+            ("Final fused risk score", explanation["explained_final_risk_score"]),
+        ]
+
+        fusion_df = pd.DataFrame(
+            fusion_rows,
+            columns=["Fusion Component", "Score"],
+        )
+
+        st.dataframe(
+            fusion_df,
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        if explanation["rule_floor_applied"]:
+            st.info(
+                "Rule-based safety floor applied: the weighted fusion "
+                "candidate was below the original rule-based score. "
+                "The final score therefore preserves the rule-based score."
+            )
+        else:
+            st.caption(
+                "Rule-based safety floor was not needed. "
+                "The weighted fusion candidate determined the final score."
+            )
+
+        st.caption(
+            "AI anomaly score is a dataset-relative min-max normalised "
+            "indicator, not a probability or a standalone measure of "
+            "water safety."
+        )
+
     st.write("### Why was this location flagged?")
 
     top_factors = factor_df.head(3)
@@ -291,6 +375,11 @@ if len(filtered) > 0:
     }
 
     st.write("### Recommended Actions")
+
+    st.caption(
+        "Action priorities are assigned individually based on specific "
+        "risk factors. They may differ from the overall location priority."
+    )
 
     actions = recommend_actions(intervention_result)
 
