@@ -15,6 +15,7 @@ from src.intervention import recommend_actions
 from src.scenario import simulate_rainfall
 from src.explainability import explain_risk_row
 from src.data_quality import validate_dataset
+from src.data_freshness import build_data_freshness_report
 
 
 st.set_page_config(
@@ -46,7 +47,75 @@ def load_data():
     return df, quality_report, str(path)
 
 
+
 df, data_quality_report, data_source_path = load_data()
+
+wqmis_metadata_path = (
+    ROOT / "data" / "raw" / "wqmis_up_2026_2027_metadata.json"
+)
+
+freshness_report = build_data_freshness_report(
+    df,
+    wqmis_metadata_path,
+)
+
+with st.expander("Data Freshness & Source Reliability", expanded=False):
+    st.dataframe(
+        freshness_report,
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    for _, record in freshness_report.iterrows():
+        source = record["source"]
+        status = record["status"]
+        age = record["age_days"]
+
+        age_text = (
+            f"{age:.2f} days ago"
+            if pd.notna(age)
+            else "retrieval age unavailable"
+        )
+
+        if status == "RECENT":
+            st.success(f"{source}: last retrieved {age_text}.")
+        elif status == "STALE":
+            st.warning(f"{source}: last retrieved {age_text}; refresh recommended.")
+        elif status == "TIMESTAMP_RECORDED":
+            st.info(
+                f"{source}: timestamp recorded ({age_text}). "
+                "No freshness threshold is configured."
+            )
+        elif status == "INVALID_FUTURE_TIMESTAMP":
+            st.error(f"{source}: future retrieval timestamp detected.")
+        else:
+            st.info(
+                f"{source}: verified retrieval timestamp unavailable. "
+                "Check the source metadata."
+            )
+
+        if source == "Rainfall (ERA5)":
+            observation_status = record["observation_status"]
+            observation_age = record["observation_age_days"]
+
+            if observation_status == "STALE":
+                st.error(
+                    f"Latest rainfall observation is {observation_age:.2f} "
+                    "days old. The 14-day observation threshold is exceeded."
+                )
+            elif observation_status == "NEAR_LIMIT":
+                st.warning(
+                    f"Latest rainfall observation is {observation_age:.2f} "
+                    "days old and approaching the 14-day monitoring limit."
+                )
+            elif observation_status == "RECENT":
+                st.info(
+                    f"Latest rainfall observation: {observation_age:.2f} "
+                    "days old."
+                )
+            else:
+                st.warning("Rainfall observation date is unavailable.")
+
 
 with st.expander("Data Quality & Reliability", expanded=False):
     total_checks = len(data_quality_report)

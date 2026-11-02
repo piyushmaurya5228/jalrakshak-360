@@ -1,9 +1,10 @@
-﻿"""Fetch official JJM/WQMIS WQ6 data for Uttar Pradesh."""
+"""Fetch official JJM/WQMIS WQ6 data for Uttar Pradesh."""
 
 import csv
 import json
 from base64 import b64encode
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 import requests
@@ -122,6 +123,27 @@ def save_data(data, fy):
         writer.writeheader()
         writer.writerows(rows)
 
+    metadata_path = output_dir / f"wqmis_up_{suffix}_metadata.json"
+
+    metadata = {
+        "source": "JJM/WQMIS WQ6",
+        "state": STATE_NAME.upper(),
+        "state_id": STATE_ID,
+        "financial_year": fy,
+        "fetched_at_ist": datetime.now(
+            ZoneInfo("Asia/Kolkata")
+        ).isoformat(timespec="seconds"),
+        "row_count": len(rows),
+        "json_file": json_path.name,
+        "csv_file": csv_path.name,
+        "endpoint": f"{BASE}/Report/GetContaminantwiseData",
+    }
+
+    metadata_path.write_text(
+        json.dumps(metadata, indent=2),
+        encoding="utf-8",
+    )
+
     return json_path, csv_path, len(rows)
 
 
@@ -139,4 +161,9 @@ if __name__ == "__main__":
     print("Rows:", count)
     print("JSON:", json_path)
     print("CSV:", csv_path)
+    metadata_path = (
+        Path("data/raw")
+        / f"wqmis_up_{fy.replace('-', '_')}_metadata.json"
+    )
+    print("Metadata:", metadata_path)
     print("WQ6 fetch completed successfully.")
