@@ -14,6 +14,7 @@ from src.pipeline import load_and_process_data
 from src.intervention import recommend_actions
 from src.scenario import simulate_rainfall
 from src.explainability import explain_risk_row
+from src.data_quality import validate_dataset
 
 
 st.set_page_config(
@@ -37,11 +38,43 @@ def load_data():
     # Fall back to the original prototype dataset if it is unavailable.
     path = processed_path if processed_path.exists() else sample_path
 
+    raw_df = pd.read_csv(path)
+    quality_report = validate_dataset(raw_df)
+
     df, _ = load_and_process_data(path)
-    return df
+
+    return df, quality_report, str(path)
 
 
-df = load_data()
+df, data_quality_report, data_source_path = load_data()
+
+with st.expander("Data Quality & Reliability", expanded=False):
+    total_checks = len(data_quality_report)
+    passed_checks = int(data_quality_report["passed"].sum())
+    failed_checks = total_checks - passed_checks
+
+    q1, q2, q3 = st.columns(3)
+    q1.metric("Total Checks", total_checks)
+    q2.metric("Passed", passed_checks)
+    q3.metric("Failed", failed_checks)
+
+    st.caption(
+        f"Validated dataset: {Path(data_source_path).name}"
+    )
+
+    st.dataframe(
+        data_quality_report,
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    if failed_checks == 0:
+        st.success("All dataset quality checks passed.")
+    else:
+        st.warning(
+            f"{failed_checks} data-quality check(s) failed. "
+            "Review the report before relying on these results."
+        )
 
 
 @st.cache_data
