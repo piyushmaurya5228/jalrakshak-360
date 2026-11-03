@@ -16,6 +16,10 @@ from src.scenario import simulate_rainfall
 from src.explainability import explain_risk_row
 from src.data_quality import validate_dataset
 from src.data_freshness import build_data_freshness_report
+from src.cgwb_dashboard import (
+    prepare_cgwb_location_history,
+    build_cgwb_parameter_table,
+)
 
 
 st.set_page_config(
@@ -1028,4 +1032,147 @@ else:
     st.warning(
         "Multi-source fusion file not found. Run "
         "scripts/build_multi_source_fusion.py first."
+    )
+
+st.divider()
+
+st.subheader("Historical Groundwater Quality — CGWB")
+st.caption(
+    "Central Ground Water Board (CGWB) historical station observations "
+    "matched to prototype locations"
+)
+
+st.warning(
+    "Historical context only: the downloaded observations cover 2000–2023. "
+    "A nearby CGWB station is not necessarily the same aquifer, well or "
+    "village drinking-water source. These values do NOT change the current "
+    "risk score and do NOT establish present-day drinking-water safety."
+)
+
+cgwb_history_path = (
+    ROOT / "data" / "processed"
+    / "cgwb_uttarakhand_location_quality_history.csv"
+)
+
+if cgwb_history_path.exists():
+    try:
+        cgwb_history = prepare_cgwb_location_history(
+            pd.read_csv(cgwb_history_path)
+        )
+    except (ValueError, KeyError, pd.errors.ParserError) as error:
+        st.error(f"CGWB history file could not be loaded safely: {error}")
+    else:
+        visible_villages = set(filtered["village"].astype(str))
+        cgwb_visible = cgwb_history[
+            cgwb_history["village"].astype(str).isin(visible_villages)
+        ].copy()
+
+        if cgwb_visible.empty:
+            st.info(
+                "No CGWB historical mapping is available for the locations "
+                "currently selected in the sidebar filters."
+            )
+        else:
+            match_counts = cgwb_visible["match_status"].value_counts()
+            within_count = int(
+                match_counts.get("SAME_DISTRICT_WITHIN_15KM", 0)
+            )
+            distant_count = int(
+                match_counts.get("SAME_DISTRICT_DISTANT_REVIEW", 0)
+            )
+            cross_count = int(
+                match_counts.get("CROSS_DISTRICT_REVIEW", 0)
+            )
+
+            h1, h2, h3, h4 = st.columns(4)
+            h1.metric("Mapped Locations", len(cgwb_visible))
+            h2.metric("Same District, ≤15 km", within_count)
+            h3.metric("Distant Same-District Review", distant_count)
+            h4.metric("Cross-District Review", cross_count)
+
+            cgwb_village = st.selectbox(
+                "Select a location for historical chemical details",
+                sorted(cgwb_visible["village"].astype(str).unique().tolist()),
+                key="cgwb_history_village",
+            )
+            cgwb_record = cgwb_visible[
+                cgwb_visible["village"].astype(str) == cgwb_village
+            ].iloc[0]
+
+            match_labels = {
+                "SAME_DISTRICT_WITHIN_15KM": "Same district — within 15 km",
+                "SAME_DISTRICT_DISTANT_REVIEW": "Same district — distance review",
+                "CROSS_DISTRICT_REVIEW": "Cross-district — chemistry withheld",
+            }
+            match_label = match_labels.get(
+                cgwb_record["match_status"],
+                str(cgwb_record["match_status"]),
+            )
+
+            h5, h6, h7, h8 = st.columns(4)
+            h5.metric("Matched CGWB Station", str(cgwb_record["station"]))
+            h6.metric("Station District", str(cgwb_record["station_district"]))
+            h7.metric(
+                "Station Distance",
+                f"{float(cgwb_record['distance_km']):.2f} km",
+            )
+            h8.metric(
+                "Historical Records",
+                int(cgwb_record["historical_record_count"]),
+            )
+
+            st.caption(
+                f"Location: {cgwb_record['village']} — "
+                f"{cgwb_record['sample_district']} | Match: {match_label} | "
+                f"Station record range: {cgwb_record['first_observation']} "
+                f"to {cgwb_record['latest_observation']}"
+            )
+
+            if cgwb_record["match_status"] == "CROSS_DISTRICT_REVIEW":
+                st.warning(
+                    "The nearest candidate station is in another district. "
+                    "Its chemical values are intentionally not assigned to "
+                    "this prototype location."
+                )
+            elif cgwb_record["match_status"] == "SAME_DISTRICT_DISTANT_REVIEW":
+                st.warning(
+                    "The station is in the same district but more than "
+                    "15 km away. Treat the results as distant historical "
+                    "context, not a village-level measurement."
+                )
+            else:
+                st.info(
+                    "The station is in the same district and within the "
+                    "project's 15 km screening distance. Geographic proximity "
+                    "does not prove that it represents the same water source."
+                )
+
+            st.write("### Latest Available Parameter Observations")
+            parameter_table = build_cgwb_parameter_table(cgwb_record)
+            st.dataframe(
+                parameter_table,
+                use_container_width=True,
+                hide_index=True,
+            )
+
+            st.caption(
+                "Each parameter retains its own latest available sampling "
+                "date. MISSING means no value was reported; ZERO_REVIEW means "
+                "a zero requires source-specific confirmation. A result above "
+                "the acceptable limit but within the permissible limit is "
+                "not equivalent to preferred acceptable quality. Permissible "
+                "limits apply only under the standard's stated conditions."
+            )
+
+            st.caption(
+                "Reference screening: BIS IS 10500:2012 selected parameters. "
+                "This is a historical research comparison, not a laboratory "
+                "certificate or an official water-safety determination."
+            )
+else:
+    st.info(
+        "CGWB location-history file not found. Generate it from the locally "
+        "available raw CGWB dataset using "
+        "`python scripts/build_cgwb_location_history.py`, then refresh "
+        "the dashboard. The raw dataset is intentionally not bundled here."
     )
