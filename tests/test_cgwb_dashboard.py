@@ -18,6 +18,9 @@ def sample_history():
         "station": "Kanwali",
         "station_district": "Dehradun",
         "distance_km": 2.4,
+        "first_observation": "2001-05-25",
+        "latest_observation": "2022-05-30",
+        "historical_record_count": 13,
         "match_status": "SAME_DISTRICT_WITHIN_15KM",
         "data_usage": "HISTORICAL_CONTEXT_ONLY",
         "risk_fusion_eligible": False,
@@ -91,6 +94,13 @@ class TestCGWBDashboard(unittest.TestCase):
             export_table.loc[0, "Geographic Match Status"],
             "SAME_DISTRICT_WITHIN_15KM",
         )
+        self.assertEqual(
+            export_table.loc[0, "Station First Observation"], "2001-05-25"
+        )
+        self.assertEqual(
+            export_table.loc[0, "Station Latest Observation"], "2022-05-30"
+        )
+        self.assertEqual(export_table.loc[0, "Station Historical Records"], 13)
         self.assertFalse(export_table.loc[0, "Risk Fusion Eligible"])
         tds_row = export_table[
             export_table["Parameter"] == "Total Dissolved Solids"

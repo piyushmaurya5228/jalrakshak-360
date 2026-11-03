@@ -191,9 +191,9 @@ def build_cgwb_export_table(record):
         "Station District": record["station_district"],
         "Station Distance (km)": record["distance_km"],
         "Geographic Match Status": record["match_status"],
-        "Station First Observation": record["first_observation"],
-        "Station Latest Observation": record["latest_observation"],
-        "Station Historical Records": record["historical_record_count"],
+        "Station First Observation": record.get("first_observation"),
+        "Station Latest Observation": record.get("latest_observation"),
+        "Station Historical Records": record.get("historical_record_count"),
         "Data Usage": record["data_usage"],
         "Risk Fusion Eligible": record["risk_fusion_eligible"],
     }
