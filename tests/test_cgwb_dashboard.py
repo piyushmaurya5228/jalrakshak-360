@@ -116,7 +116,7 @@ class TestCGWBDashboard(unittest.TestCase):
 
     def test_export_includes_parameter_data_and_station_context(self):
         result = prepare_cgwb_location_history(sample_history()).iloc[0]
-        export_table = build_cgwb_export_table(result)
+        export_table = build_cgwb_export_table(result, as_of="2026-11-03")
 
         self.assertEqual(len(export_table), 5)
         self.assertEqual(export_table.loc[0, "Location"], "Village_A")
@@ -141,9 +141,7 @@ class TestCGWBDashboard(unittest.TestCase):
         self.assertEqual(tds_row["Latest Value"], 650.0)
         self.assertEqual(tds_row["Sampling Date"], "2021-05-12")
         self.assertEqual(tds_row["Observation Age"], "5.5 years old")
-        self.assertEqual(tds_row["Age Calculated As Of"], pd.Timestamp.now(
-            tz="Asia/Kolkata"
-        ).date().isoformat())
+        self.assertEqual(tds_row["Age Calculated As Of"], "2026-11-03")
         self.assertEqual(
             tds_row["BIS Reference Screening"],
             "Above acceptable; within permissible",

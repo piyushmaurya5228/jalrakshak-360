@@ -1226,6 +1226,13 @@ if cgwb_history_path.exists():
             village_file_name = (
                 str(cgwb_village).strip().lower().replace(" ", "_")
             )
+            st.caption(
+                "Observation Age is calculated separately from each parameter's "
+                "sampling date. Age Calculated As Of uses the current India "
+                "Standard Time date; missing, invalid or future dates are marked "
+                "for review."
+            )
+
             st.download_button(
                 label="Download historical screening CSV",
                 data=export_csv,

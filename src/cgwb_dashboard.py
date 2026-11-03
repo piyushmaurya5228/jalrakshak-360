@@ -242,9 +242,9 @@ def build_cgwb_parameter_table(record, as_of=None):
 
 
 
-def build_cgwb_export_table(record):
-    """Build a CSV-ready parameter table with its station and mapping context."""
-    parameter_table = build_cgwb_parameter_table(record)
+def build_cgwb_export_table(record, as_of=None):
+    """Build a CSV-ready parameter table with station context and observation ages."""
+    parameter_table = build_cgwb_parameter_table(record, as_of=as_of)
 
     metadata = {
         "Location": record["village"],
