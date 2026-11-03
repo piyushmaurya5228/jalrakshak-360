@@ -20,6 +20,7 @@ from src.cgwb_dashboard import (
     prepare_cgwb_location_history,
     build_cgwb_parameter_table,
     summarize_cgwb_screening,
+    build_cgwb_export_table,
 )
 
 
@@ -1218,6 +1219,24 @@ if cgwb_history_path.exists():
                 styled_parameter_table,
                 use_container_width=True,
                 hide_index=True,
+            )
+
+            export_table = build_cgwb_export_table(cgwb_record)
+            export_csv = export_table.to_csv(index=False).encode("utf-8-sig")
+            village_file_name = (
+                str(cgwb_village).strip().lower().replace(" ", "_")
+            )
+            st.download_button(
+                label="Download historical screening CSV",
+                data=export_csv,
+                file_name=f"cgwb_historical_screening_{village_file_name}.csv",
+                mime="text/csv",
+                key="cgwb_history_download",
+                help=(
+                    "Exports the displayed parameter values, their individual "
+                    "sampling dates, BIS screening labels, reference limits "
+                    "and CGWB station-matching context."
+                ),
             )
             st.caption(
                 "Colour key: green = within acceptable/reference range; "

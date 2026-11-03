@@ -142,6 +142,11 @@ The summary keeps pH range checks separate from chemical concentration
 limits. These categories are display summaries only and do not create
 a water-safety certification or alter the project risk score.
 
+A selected-location CSV export is available beside the dashboard table.
+It includes parameter values, individual sampling dates, units, screening
+labels, reference limits and the station/location matching context. The
+export preserves the historical-context-only and non-risk-fusion status.
+
 ## 8. Limitations
 
 1. Observations are historical, with the latest dated 18 April 2023.

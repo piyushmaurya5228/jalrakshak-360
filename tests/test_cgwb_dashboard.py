@@ -4,6 +4,7 @@ import pandas as pd
 
 from src.cgwb_dashboard import (
     build_cgwb_parameter_table,
+    build_cgwb_export_table,
     prepare_cgwb_location_history,
     summarize_cgwb_screening,
 )
@@ -75,6 +76,30 @@ class TestCGWBDashboard(unittest.TestCase):
             table.loc[table["Parameter"] == "Total Dissolved Solids",
                       "Sampling Date"].iloc[0],
             "2021-05-12",
+        )
+
+    def test_export_includes_parameter_data_and_station_context(self):
+        result = prepare_cgwb_location_history(sample_history()).iloc[0]
+        export_table = build_cgwb_export_table(result)
+
+        self.assertEqual(len(export_table), 5)
+        self.assertEqual(export_table.loc[0, "Location"], "Village_A")
+        self.assertEqual(
+            export_table.loc[0, "Matched CGWB Station"], "Kanwali"
+        )
+        self.assertEqual(
+            export_table.loc[0, "Geographic Match Status"],
+            "SAME_DISTRICT_WITHIN_15KM",
+        )
+        self.assertFalse(export_table.loc[0, "Risk Fusion Eligible"])
+        tds_row = export_table[
+            export_table["Parameter"] == "Total Dissolved Solids"
+        ].iloc[0]
+        self.assertEqual(tds_row["Latest Value"], 650.0)
+        self.assertEqual(tds_row["Sampling Date"], "2021-05-12")
+        self.assertEqual(
+            tds_row["BIS Reference Screening"],
+            "Above acceptable; within permissible",
         )
 
     def test_cross_district_values_must_remain_blank(self):

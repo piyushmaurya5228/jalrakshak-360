@@ -177,3 +177,32 @@ def build_cgwb_parameter_table(record):
         })
 
     return pd.DataFrame(rows)
+
+
+
+def build_cgwb_export_table(record):
+    """Build a CSV-ready parameter table with its station and mapping context."""
+    parameter_table = build_cgwb_parameter_table(record)
+
+    metadata = {
+        "Location": record["village"],
+        "Location District": record["sample_district"],
+        "Matched CGWB Station": record["station"],
+        "Station District": record["station_district"],
+        "Station Distance (km)": record["distance_km"],
+        "Geographic Match Status": record["match_status"],
+        "Station First Observation": record["first_observation"],
+        "Station Latest Observation": record["latest_observation"],
+        "Station Historical Records": record["historical_record_count"],
+        "Data Usage": record["data_usage"],
+        "Risk Fusion Eligible": record["risk_fusion_eligible"],
+    }
+    metadata_table = pd.DataFrame(
+        {column: [value] * len(parameter_table)
+         for column, value in metadata.items()}
+    )
+
+    return pd.concat(
+        [metadata_table, parameter_table.reset_index(drop=True)],
+        axis=1,
+    )
