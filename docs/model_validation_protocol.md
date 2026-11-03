@@ -89,7 +89,7 @@ files locally at `data/validation/input/train.csv`,
 `data/validation/input/test.csv`. Then run:
 
 ```powershell
-.\\venv\\Scripts\\python.exe scripts\\evaluate_model.py
+.\venv\Scripts\python.exe scripts\\evaluate_model.py
 ```
 
 Results are written to `reports/model_validation/`. Both the input and
