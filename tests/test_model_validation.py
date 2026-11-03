@@ -15,6 +15,7 @@ def make_data(prefix, n, labelled=False):
             "group_id": f"{prefix}_GROUP_{i}",
             "data_source": "unit-test-fixture",
             "is_synthetic": False,
+            "feature_as_of_date": "2024-01-31",
             "water_contamination_rate": 0.15 + 0.55 * y + (i % 5) * 0.01,
             "rainfall_7d": 20 + 100 * y + i,
             "rainfall_normal": 70 + i,
@@ -29,6 +30,13 @@ def make_data(prefix, n, labelled=False):
                 "ground_truth_label": y,
                 "label_review_status": "EXPERT_VERIFIED",
                 "label_source": "unit-test-fixture",
+                "historical_window_end": "2024-01-31",
+                "label_window_start": "2024-02-01",
+                "label_window_end": "2024-03-01",
+                "label_reviewed_at": "2024-03-05",
+                "label_evidence_id": f"{prefix}_EVIDENCE_{i}",
+                "label_protocol_version": "unit-test-v1",
+                "reviewer_code": "reviewer-fixture",
             })
         rows.append(row)
     return pd.DataFrame(rows)
@@ -91,6 +99,54 @@ class TestIndependentModelValidation(unittest.TestCase):
         cal.loc[0, "group_id"] = train.loc[0, "group_id"]
         with self.assertRaisesRegex(ValueError, "leakage"):
             evaluate_independent_model(train, cal, test)
+
+    def test_feature_date_must_be_valid(self):
+        train = make_data("TRAIN", 12)
+        train.loc[0, "feature_as_of_date"] = "not-a-date"
+        with self.assertRaisesRegex(ValueError, "feature_as_of_date"):
+            evaluate_independent_model(
+                train, make_data("CAL", 8, True), make_data("TEST", 8, True)
+            )
+
+    def test_historical_inputs_must_end_before_feature_cutoff(self):
+        cal = make_data("CAL", 8, True)
+        cal.loc[0, "historical_window_end"] = "2024-02-02"
+        with self.assertRaisesRegex(ValueError, "historical_window_end"):
+            evaluate_independent_model(
+                make_data("TRAIN", 12), cal, make_data("TEST", 8, True)
+            )
+
+    def test_outcome_window_must_follow_feature_cutoff(self):
+        cal = make_data("CAL", 8, True)
+        cal.loc[0, "label_window_start"] = "2024-01-31"
+        with self.assertRaisesRegex(ValueError, "label_window_start"):
+            evaluate_independent_model(
+                make_data("TRAIN", 12), cal, make_data("TEST", 8, True)
+            )
+
+    def test_outcome_window_end_cannot_precede_start(self):
+        cal = make_data("CAL", 8, True)
+        cal.loc[0, "label_window_end"] = "2024-01-30"
+        with self.assertRaisesRegex(ValueError, "label_window_end"):
+            evaluate_independent_model(
+                make_data("TRAIN", 12), cal, make_data("TEST", 8, True)
+            )
+
+    def test_labels_cannot_be_reviewed_before_outcome_window_ends(self):
+        cal = make_data("CAL", 8, True)
+        cal.loc[0, "label_reviewed_at"] = "2024-02-20"
+        with self.assertRaisesRegex(ValueError, "reviewed before"):
+            evaluate_independent_model(
+                make_data("TRAIN", 12), cal, make_data("TEST", 8, True)
+            )
+
+    def test_label_evidence_metadata_is_required(self):
+        cal = make_data("CAL", 8, True)
+        cal.loc[0, "label_evidence_id"] = " "
+        with self.assertRaisesRegex(ValueError, "label_evidence_id"):
+            evaluate_independent_model(
+                make_data("TRAIN", 12), cal, make_data("TEST", 8, True)
+            )
 
     def test_contaminated_tests_cannot_exceed_total(self):
         cal = make_data("CAL", 8, True)

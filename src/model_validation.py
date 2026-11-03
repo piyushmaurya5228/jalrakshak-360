@@ -8,8 +8,13 @@ from sklearn.metrics import (
 from src.anomaly_model import FEATURES, train_anomaly_model
 from src.risk_engine import calculate_location_risk
 
-META = ("site_id", "group_id", "data_source", "is_synthetic")
-LABELS = ("ground_truth_label", "label_review_status", "label_source")
+META = ("site_id", "group_id", "data_source", "is_synthetic", "feature_as_of_date")
+LABELS = (
+    "ground_truth_label", "label_review_status", "label_source",
+    "historical_window_end", "label_window_start", "label_window_end",
+    "label_reviewed_at", "label_evidence_id", "label_protocol_version",
+    "reviewer_code",
+)
 RISK_INPUTS = (
     "water_contamination_rate", "rainfall_7d", "rainfall_normal",
     "groundwater_stress", "population", "water_tests", "contaminated_tests",
@@ -41,6 +46,12 @@ def _prepare(frame, name, labelled):
     source = result["data_source"].astype("string").str.strip()
     if source.isna().any() or source.eq("").any():
         raise ValueError(f"{name} contains blank data_source values.")
+
+    feature_dates = pd.to_datetime(result["feature_as_of_date"], errors="coerce", utc=True)
+    if feature_dates.isna().any():
+        raise ValueError(f"{name} has missing or invalid feature_as_of_date values.")
+    result["feature_as_of_date"] = feature_dates
+
     flags = result["is_synthetic"].astype("string").str.strip().str.casefold()
     false_flags, true_flags = {"false", "0", "no", "n"}, {"true", "1", "yes", "y"}
     if (~flags.isin(false_flags | true_flags)).any():
@@ -67,9 +78,39 @@ def _prepare(frame, name, labelled):
         status = result["label_review_status"].astype("string").str.strip().str.upper()
         if status.isna().any() or not status.eq("EXPERT_VERIFIED").all():
             raise ValueError(f"{name} labels must have label_review_status=EXPERT_VERIFIED.")
-        label_source = result["label_source"].astype("string").str.strip()
-        if label_source.isna().any() or label_source.eq("").any():
-            raise ValueError(f"{name} has blank label_source values.")
+        text_fields = (
+            "label_source", "label_evidence_id",
+            "label_protocol_version", "reviewer_code",
+        )
+        for col in text_fields:
+            values = result[col].astype("string").str.strip()
+            if values.isna().any() or values.eq("").any():
+                raise ValueError(f"{name} has blank {col} values.")
+            result[col] = values
+
+        date_fields = (
+            "historical_window_end", "label_window_start",
+            "label_window_end", "label_reviewed_at",
+        )
+        for col in date_fields:
+            parsed = pd.to_datetime(result[col], errors="coerce", utc=True)
+            if parsed.isna().any():
+                raise ValueError(f"{name} has missing or invalid {col} values.")
+            result[col] = parsed
+
+        if (result["historical_window_end"] > result["feature_as_of_date"]).any():
+            raise ValueError(
+                f"{name} historical_window_end must be on or before feature_as_of_date."
+            )
+        if (result["label_window_start"] <= result["feature_as_of_date"]).any():
+            raise ValueError(
+                f"{name} label_window_start must be after feature_as_of_date."
+            )
+        if (result["label_window_end"] < result["label_window_start"]).any():
+            raise ValueError(f"{name} label_window_end cannot precede label_window_start.")
+        if (result["label_reviewed_at"] < result["label_window_end"]).any():
+            raise ValueError(f"{name} labels cannot be reviewed before the outcome window ends.")
+
         labels = pd.to_numeric(result["ground_truth_label"], errors="coerce")
         if labels.isna().any() or not labels.isin([0, 1]).all() or labels.nunique() != 2:
             raise ValueError(f"{name} ground_truth_label must contain both 0 and 1 only.")
@@ -186,6 +227,16 @@ def evaluate_independent_model(training_df, calibration_df, test_df, contaminati
         "label_definition": "1=elevated risk and 0=not elevated under one documented expert-approved protocol.",
         "label_requirement": "Calibration and holdout labels are declared EXPERT_VERIFIED in the supplied files.",
         "split_policy": "site_id and geographic group_id are disjoint across training, calibration and holdout test.",
+        "temporal_policy": (
+            "Features are frozen at feature_as_of_date; historical water-test inputs end "
+            "on or before that date; outcome labels begin after that date; label review "
+            "is recorded on or after the outcome-window end. Dates are declared metadata "
+            "and are not independently authenticated by this script."
+        ),
+        "label_protocol_versions": sorted(
+            set(calibration["label_protocol_version"].astype(str))
+            | set(test["label_protocol_version"].astype(str))
+        ),
         "datasets": {
             name: {
                 "rows": int(len(frame)),

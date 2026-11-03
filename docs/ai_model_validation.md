@@ -7,7 +7,9 @@ demonstrations, not independent real-world accuracy measurements.
 A separate evaluation workflow is implemented in `src/model_validation.py`
 and `scripts/evaluate_model.py`. It requires verified non-synthetic training
 observations and geographically separate expert-reviewed calibration and
-holdout labels.
+holdout labels. The workflow also checks that predictors and historical inputs
+precede a separately dated outcome window, with traceable label evidence and
+review metadata.
 
 **Real-world accuracy, expert label validation and operational approval of
 weights/thresholds remain pending.** The evaluator does not change production
