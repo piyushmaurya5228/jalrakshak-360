@@ -1,3 +1,20 @@
+# Current validation status
+
+The 12-location prototype data is synthetic. Its baseline scores and
+sensitivity experiments below are retained as software/model-behaviour
+demonstrations, not independent real-world accuracy measurements.
+
+A separate evaluation workflow is implemented in `src/model_validation.py`
+and `scripts/evaluate_model.py`. It requires verified non-synthetic training
+observations and geographically separate expert-reviewed calibration and
+holdout labels.
+
+**Real-world accuracy, expert label validation and operational approval of
+weights/thresholds remain pending.** The evaluator does not change production
+scoring.
+
+---
+
 ﻿# JalRakshak 360 — AI Model Validation Report
 
 ## 1. Objective
@@ -140,16 +157,16 @@ Result: PASS.
 
 | Validation activity | Status |
 |---|---|
-| Baseline anomaly analysis | Completed |
-| Contamination sensitivity analysis | Completed |
-| Five-seed stability analysis | Completed |
+| Baseline anomaly analysis | Completed — synthetic demonstration only |
+| Contamination sensitivity analysis | Completed — synthetic demonstration only |
+| Five-seed stability analysis | Completed — synthetic demonstration only |
 | Same-seed reproducibility test | Passed |
 | Anomaly score range test | Passed |
-| Ground-truth accuracy evaluation | Pending |
+| Independent validation workflow | Implemented and unit-tested |\n| Verified real training dataset | Pending |\n| Expert-reviewed calibration labels | Pending |\n| Untouched expert-reviewed holdout labels | Pending |\n| Ground-truth accuracy evaluation | Pending |
 | Independent dataset evaluation | Pending |
 | Expert-reviewed anomaly validation | Pending |
 
-The complete project test suite previously passed with 39 tests.
+Automated tests verify implementation behaviour and validation safeguards; they do not establish real-world predictive accuracy.
 
 Software test success verifies tested implementation behaviour.
 It does not establish the real-world accuracy of the anomaly model.
@@ -214,3 +231,10 @@ The model should currently be treated as an experimental
 anomaly detection component within the broader explainable
 water-risk decision-support system, rather than as an independently
 validated drinking-water safety classifier.
+
+
+## Independent evaluation workflow
+
+See `docs/model_validation_protocol.md` for the input schema, split policy,
+calibration procedure and holdout metrics. The workflow compares rule-only,
+anomaly-only and calibrated fusion without applying any change to production.

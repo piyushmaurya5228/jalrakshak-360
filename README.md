@@ -16,6 +16,13 @@ The system combines:
 
 The objective is to transform fragmented water and environmental risk information into an understandable and actionable decision-support workflow.
 
+**Model validation note:** the 12-location prototype dataset is synthetic and
+cannot establish real-world predictive accuracy. An independent
+train/calibration/holdout evaluation workflow is included and requires
+non-synthetic records and expert-reviewed labels. See
+`docs/model_validation_protocol.md`.
+
+
 ---
 
 ## 🚨 Problem Statement
@@ -567,7 +574,7 @@ Risk Fusion              ✅
 Scenario Simulator       ✅
 WQ6 Mapper               ✅
 
-Total: 9/9 tests passed
+The suite also includes safeguards for independent model validation. Run the command above for the current total.
 ```
 
 Testing covers:
