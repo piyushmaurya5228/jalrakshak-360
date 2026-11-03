@@ -565,17 +565,9 @@ Run all tests with:
 python -m unittest discover -s tests -v
 ```
 
-### Current test status
+### Test suite
 
-```text
-Risk Engine              ✅
-AI Anomaly Model         ✅
-Risk Fusion              ✅
-Scenario Simulator       ✅
-WQ6 Mapper               ✅
-
-The suite also includes safeguards for independent model validation. Run the command above for the current total.
-```
+Run the complete test suite with the command in the Testing section. Coverage includes risk logic, anomaly detection, fusion, scenario simulation, source-data validation, CGWB screening/export and independent model-validation safeguards.
 
 Testing covers:
 

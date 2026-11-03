@@ -69,6 +69,23 @@ class TestIndependentModelValidation(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "EXPERT_VERIFIED"):
             evaluate_independent_model(make_data("TRAIN", 12), cal, make_data("TEST", 8, True))
 
+    def test_missing_label_review_status_is_rejected(self):
+        cal = make_data("CAL", 8, True)
+        cal.loc[0, "label_review_status"] = None
+        with self.assertRaisesRegex(ValueError, "EXPERT_VERIFIED"):
+            evaluate_independent_model(
+                make_data("TRAIN", 12), cal, make_data("TEST", 8, True)
+            )
+
+    def test_training_requires_ten_unique_sites(self):
+        train = make_data("TRAIN", 12)
+        train["site_id"] = "ONE_SITE"
+        train["group_id"] = "ONE_GROUP"
+        with self.assertRaisesRegex(ValueError, "10 unique sites"):
+            evaluate_independent_model(
+                train, make_data("CAL", 8, True), make_data("TEST", 8, True)
+            )
+
     def test_geographic_overlap_is_rejected(self):
         train, cal, test = make_data("TRAIN", 12), make_data("CAL", 8, True), make_data("TEST", 8, True)
         cal.loc[0, "group_id"] = train.loc[0, "group_id"]

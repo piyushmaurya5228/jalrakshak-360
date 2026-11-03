@@ -162,7 +162,11 @@ Result: PASS.
 | Five-seed stability analysis | Completed — synthetic demonstration only |
 | Same-seed reproducibility test | Passed |
 | Anomaly score range test | Passed |
-| Independent validation workflow | Implemented and unit-tested |\n| Verified real training dataset | Pending |\n| Expert-reviewed calibration labels | Pending |\n| Untouched expert-reviewed holdout labels | Pending |\n| Ground-truth accuracy evaluation | Pending |
+| Independent validation workflow | Implemented and unit-tested |
+| Verified real training dataset | Pending |
+| Expert-reviewed calibration labels | Pending |
+| Untouched expert-reviewed holdout labels | Pending |
+| Ground-truth accuracy evaluation | Pending |
 | Independent dataset evaluation | Pending |
 | Expert-reviewed anomaly validation | Pending |
 

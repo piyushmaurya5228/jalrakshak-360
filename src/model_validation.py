@@ -14,7 +14,7 @@ RISK_INPUTS = (
     "water_contamination_rate", "rainfall_7d", "rainfall_normal",
     "groundwater_stress", "population", "water_tests", "contaminated_tests",
 )
-WEIGHTS = tuple(round(x, 2) for x in np.arange(0, 0.51, 0.05))
+WEIGHTS = tuple(float(round(x, 2)) for x in np.arange(0, 0.51, 0.05))
 CUTOFFS = (30.0, 60.0, 80.0)
 
 
@@ -65,7 +65,7 @@ def _prepare(frame, name, labelled):
 
     if labelled:
         status = result["label_review_status"].astype("string").str.strip().str.upper()
-        if not status.eq("EXPERT_VERIFIED").all():
+        if status.isna().any() or not status.eq("EXPERT_VERIFIED").all():
             raise ValueError(f"{name} labels must have label_review_status=EXPERT_VERIFIED.")
         label_source = result["label_source"].astype("string").str.strip()
         if label_source.isna().any() or label_source.eq("").any():
@@ -157,8 +157,17 @@ def evaluate_independent_model(training_df, calibration_df, test_df, contaminati
     calibration = _prepare(calibration_df, "calibration", True)
     test = _prepare(test_df, "holdout test", True)
     _check_disjoint(train, calibration, test)
-    if len(train) < 10:
-        raise ValueError("Training data must contain at least 10 observations.")
+    if train["site_id"].nunique() < 10:
+        raise ValueError("Training data must contain at least 10 unique sites.")
+    for partition_name, partition in (
+        ("training", train),
+        ("calibration", calibration),
+        ("holdout test", test),
+    ):
+        if partition["group_id"].nunique() < 2:
+            raise ValueError(
+                f"{partition_name} must contain at least 2 geographic groups."
+            )
 
     model = train_anomaly_model(train, contamination=contamination, random_state=random_state)
     cal_anomaly = _anomaly_percentile(model, train, calibration)

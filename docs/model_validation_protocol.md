@@ -21,8 +21,9 @@ real-world accuracy from the synthetic prototype.
   Used only for final metrics, never for tuning.
 
 The same `site_id` or `group_id` cannot occur in more than one partition.
-Use meaningful geographic groups such as districts, watersheds or monitoring
-regions to reduce spatial leakage. The code checks declared IDs but cannot
+Training must contain at least 10 distinct sites; each partition must contain
+at least two geographic groups. Use meaningful geographic groups such as
+districts, watersheds or monitoring regions to reduce spatial leakage. The code checks declared IDs but cannot
 authenticate their real-world correctness.
 
 ## Required columns
