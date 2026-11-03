@@ -127,6 +127,21 @@ Automated tests:
 
 The raw CGWB dataset remains unchanged.
 
+## 8. Dashboard Presentation
+
+The selected-location dashboard presents a separate summary for:
+- Values within acceptable limits or the pH reference range
+- Values above acceptable but within permissible limits
+- Values above permissible limits
+- pH values outside the reference range
+- Values requiring source review
+- Parameters not reported
+
+Parameter statuses use green, amber, red and grey visual labels.
+The summary keeps pH range checks separate from chemical concentration
+limits. These categories are display summaries only and do not create
+a water-safety certification or alter the project risk score.
+
 ## 8. Limitations
 
 1. Observations are historical, with the latest dated 18 April 2023.
@@ -138,7 +153,7 @@ The raw CGWB dataset remains unchanged.
 6. This screening is not an independent laboratory verification.
 7. Historical results cannot establish present-day water safety.
 
-## 9. Risk-Fusion Policy
+## 10. Risk-Fusion Policy
 
 The screening output is a historical research layer.
 
@@ -148,7 +163,7 @@ No risk-fusion eligibility is implied by passing a reference limit.
 Any future integration requires validation of sampling purpose,
 units, dates, station relevance and geographic applicability.
 
-## 10. Conclusion
+## 11. Conclusion
 
 The screening module classifies available historical CGWB observations
 without changing the raw source values.

@@ -101,6 +101,36 @@ def prepare_cgwb_location_history(history_df):
     return result
 
 
+
+def summarize_cgwb_screening(record):
+    """Count selected-location screening outcomes without combining pH with chemical limits."""
+    statuses = {
+        name: record[f"{name}_screening_status"]
+        for name in PARAMETER_COLUMNS
+    }
+    values = list(statuses.values())
+
+    return {
+        "within_acceptable_or_ph_range": sum(
+            value in {"WITHIN_ACCEPTABLE", "WITHIN_REFERENCE_RANGE"}
+            for value in values
+        ),
+        "above_acceptable_within_permissible": values.count(
+            "ABOVE_ACCEPTABLE_WITHIN_PERMISSIBLE"
+        ),
+        "above_permissible": values.count("ABOVE_PERMISSIBLE"),
+        "ph_outside_reference_range": sum(
+            statuses["ph"] == value
+            for value in {"BELOW_REFERENCE_RANGE", "ABOVE_REFERENCE_RANGE"}
+        ),
+        "review_required": sum(
+            value in {"ZERO_REVIEW", "INVALID_NEGATIVE", "INVALID_VALUE"}
+            for value in values
+        ),
+        "not_reported": values.count("MISSING"),
+    }
+
+
 def build_cgwb_parameter_table(record):
     """Build a display-ready table for one mapped prototype location."""
     rows = []

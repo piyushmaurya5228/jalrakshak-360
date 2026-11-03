@@ -19,6 +19,7 @@ from src.data_freshness import build_data_freshness_report
 from src.cgwb_dashboard import (
     prepare_cgwb_location_history,
     build_cgwb_parameter_table,
+    summarize_cgwb_screening,
 )
 
 
@@ -1147,12 +1148,82 @@ if cgwb_history_path.exists():
                     "does not prove that it represents the same water source."
                 )
 
+            screening_summary = summarize_cgwb_screening(cgwb_record)
+
+            st.write("### BIS Reference Screening Summary")
+            s1, s2, s3 = st.columns(3)
+            s1.metric(
+                "Within Acceptable / pH Range",
+                screening_summary["within_acceptable_or_ph_range"],
+            )
+            s2.metric(
+                "Above Acceptable, Within Permissible",
+                screening_summary["above_acceptable_within_permissible"],
+            )
+            s3.metric(
+                "Above Permissible",
+                screening_summary["above_permissible"],
+            )
+
+            s4, s5, s6 = st.columns(3)
+            s4.metric(
+                "Outside pH Reference Range",
+                screening_summary["ph_outside_reference_range"],
+            )
+            s5.metric(
+                "Values Requiring Review",
+                screening_summary["review_required"],
+            )
+            s6.metric(
+                "Not Reported",
+                screening_summary["not_reported"],
+            )
+
             st.write("### Latest Available Parameter Observations")
             parameter_table = build_cgwb_parameter_table(cgwb_record)
+
+            def cgwb_status_style(status):
+                if status in {
+                    "Within acceptable limit",
+                    "Within pH reference range",
+                }:
+                    return (
+                        "background-color: #d1e7dd; "
+                        "color: #0f5132; font-weight: 600;"
+                    )
+                if status == "Above acceptable; within permissible":
+                    return (
+                        "background-color: #fff3cd; "
+                        "color: #664d03; font-weight: 600;"
+                    )
+                if status in {
+                    "Above permissible limit",
+                    "Below pH reference range",
+                    "Above pH reference range",
+                }:
+                    return (
+                        "background-color: #f8d7da; "
+                        "color: #842029; font-weight: 600;"
+                    )
+                return (
+                    "background-color: #e2e3e5; "
+                    "color: #41464b; font-weight: 600;"
+                )
+
+            styled_parameter_table = parameter_table.style.map(
+                cgwb_status_style,
+                subset=["BIS Reference Screening"],
+            )
             st.dataframe(
-                parameter_table,
+                styled_parameter_table,
                 use_container_width=True,
                 hide_index=True,
+            )
+            st.caption(
+                "Colour key: green = within acceptable/reference range; "
+                "amber = above acceptable but within permissible; "
+                "red = above permissible or outside the pH range; "
+                "grey = missing, zero-review or invalid value."
             )
 
             st.caption(
