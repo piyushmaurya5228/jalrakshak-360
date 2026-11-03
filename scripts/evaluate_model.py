@@ -1,8 +1,17 @@
 """Run independent train/calibration/holdout validation for JalRakshak 360."""
 import argparse
 import json
+import sys
 from pathlib import Path
+
+# Add the repository root so "src" can be imported when this file is
+# executed directly as: python scripts/evaluate_model.py
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 import pandas as pd
+
 from src.model_validation import evaluate_independent_model
 
 
