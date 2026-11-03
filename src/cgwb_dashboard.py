@@ -131,8 +131,62 @@ def summarize_cgwb_screening(record):
     }
 
 
-def build_cgwb_parameter_table(record):
-    """Build a display-ready table for one mapped prototype location."""
+def _normalise_age_reference_date(as_of=None):
+    """Return the age reference date as a timezone-naive India-local date."""
+    if as_of is None:
+        return (
+            pd.Timestamp.now(tz="Asia/Kolkata")
+            .normalize()
+            .tz_localize(None)
+        )
+
+    reference = pd.to_datetime(as_of, errors="coerce")
+    if pd.isna(reference):
+        raise ValueError("as_of must be a valid date.")
+
+    reference = pd.Timestamp(reference)
+    if reference.tzinfo is not None:
+        reference = (
+            reference.tz_convert("Asia/Kolkata").tz_localize(None)
+        )
+    return reference.normalize()
+
+
+def format_observation_age(sample_date, as_of=None):
+    """Format elapsed time since a parameter sample date."""
+    if pd.isna(sample_date) or (
+        isinstance(sample_date, str) and not sample_date.strip()
+    ):
+        return "Not available"
+
+    sampled = pd.to_datetime(sample_date, errors="coerce")
+    if pd.isna(sampled):
+        return "Invalid date — review"
+
+    sampled = pd.Timestamp(sampled)
+    if sampled.tzinfo is not None:
+        sampled = sampled.tz_convert("Asia/Kolkata").tz_localize(None)
+    sampled = sampled.normalize()
+
+    reference = _normalise_age_reference_date(as_of)
+    if sampled > reference:
+        return "Future date — review"
+
+    age_days = int((reference - sampled).days)
+    if age_days < 30:
+        return f"{age_days} days old"
+    if age_days < 365:
+        age_months = age_days / 30.436875
+        return f"{age_months:.1f} months old"
+
+    age_years = age_days / 365.2425
+    return f"{age_years:.1f} years old"
+
+
+def build_cgwb_parameter_table(record, as_of=None):
+    """Build a display-ready table with each parameter's observation age."""
+    age_reference_date = _normalise_age_reference_date(as_of)
+    age_reference_label = age_reference_date.date().isoformat()
     rows = []
 
     ph_value = record["ph_latest_value"]
@@ -142,6 +196,10 @@ def build_cgwb_parameter_table(record):
         "Latest Value": ph_value,
         "Unit": "—",
         "Sampling Date": record["ph_sample_date"],
+        "Observation Age": format_observation_age(
+            record["ph_sample_date"], age_reference_date
+        ),
+        "Age Calculated As Of": age_reference_label,
         "BIS Reference Screening": STATUS_LABELS[ph_status],
         "Acceptable Limit": "6.5–8.5",
         "Permissible Limit": "No relaxation",
@@ -171,6 +229,10 @@ def build_cgwb_parameter_table(record):
             "Latest Value": record[value_column],
             "Unit": units[name],
             "Sampling Date": record[date_column],
+            "Observation Age": format_observation_age(
+                record[date_column], age_reference_date
+            ),
+            "Age Calculated As Of": age_reference_label,
             "BIS Reference Screening": STATUS_LABELS[status],
             "Acceptable Limit": acceptable,
             "Permissible Limit": permissible,

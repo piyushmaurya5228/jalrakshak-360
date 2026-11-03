@@ -5,6 +5,7 @@ import pandas as pd
 from src.cgwb_dashboard import (
     build_cgwb_parameter_table,
     build_cgwb_export_table,
+    format_observation_age,
     prepare_cgwb_location_history,
     summarize_cgwb_screening,
 )
@@ -81,6 +82,38 @@ class TestCGWBDashboard(unittest.TestCase):
             "2021-05-12",
         )
 
+    def test_observation_age_uses_each_parameter_sampling_date(self):
+        result = prepare_cgwb_location_history(sample_history()).iloc[0]
+        table = build_cgwb_parameter_table(result, as_of="2026-11-03")
+
+        tds = table[
+            table["Parameter"] == "Total Dissolved Solids"
+        ].iloc[0]
+        ph = table[table["Parameter"] == "pH"].iloc[0]
+
+        self.assertEqual(tds["Observation Age"], "5.5 years old")
+        self.assertEqual(tds["Age Calculated As Of"], "2026-11-03")
+        self.assertEqual(ph["Observation Age"], "4.5 years old")
+
+    def test_observation_age_handles_missing_invalid_and_future_dates(self):
+        as_of = "2026-11-03"
+        self.assertEqual(
+            format_observation_age(None, as_of),
+            "Not available",
+        )
+        self.assertEqual(
+            format_observation_age("not-a-date", as_of),
+            "Invalid date — review",
+        )
+        self.assertEqual(
+            format_observation_age("2026-11-04", as_of),
+            "Future date — review",
+        )
+        self.assertEqual(
+            format_observation_age("2026-10-20", as_of),
+            "14 days old",
+        )
+
     def test_export_includes_parameter_data_and_station_context(self):
         result = prepare_cgwb_location_history(sample_history()).iloc[0]
         export_table = build_cgwb_export_table(result)
@@ -107,6 +140,10 @@ class TestCGWBDashboard(unittest.TestCase):
         ].iloc[0]
         self.assertEqual(tds_row["Latest Value"], 650.0)
         self.assertEqual(tds_row["Sampling Date"], "2021-05-12")
+        self.assertEqual(tds_row["Observation Age"], "5.5 years old")
+        self.assertEqual(tds_row["Age Calculated As Of"], pd.Timestamp.now(
+            tz="Asia/Kolkata"
+        ).date().isoformat())
         self.assertEqual(
             tds_row["BIS Reference Screening"],
             "Above acceptable; within permissible",

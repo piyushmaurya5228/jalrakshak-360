@@ -147,6 +147,13 @@ It includes parameter values, individual sampling dates, units, screening
 labels, reference limits and the station/location matching context. The
 export preserves the historical-context-only and non-risk-fusion status.
 
+The parameter table and CSV also show the elapsed age of each observation,
+calculated independently from that parameter's sampling date. The reference
+date is displayed in the `Age Calculated As Of` column and uses India Standard
+Time. Missing, invalid and future sampling dates are labelled for review
+rather than assigned an age. Age is a recency indicator only; it does not
+validate the sample or establish present-day water quality.
+
 ## 8. Limitations
 
 1. Observations are historical, with the latest dated 18 April 2023.
