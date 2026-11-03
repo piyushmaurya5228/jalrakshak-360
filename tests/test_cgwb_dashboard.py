@@ -57,10 +57,17 @@ class TestCGWBDashboard(unittest.TestCase):
     def test_cross_district_values_must_remain_blank(self):
         data = sample_history()
         data.loc[0, "match_status"] = "CROSS_DISTRICT_REVIEW"
-        data.loc[0, "tds_latest_value"] = None
-        data.loc[0, "tds_sample_date"] = None
+
+        for parameter in ["ph", "tds", "chloride", "sulphate", "hardness"]:
+            data.loc[0, f"{parameter}_latest_value"] = None
+            data.loc[0, f"{parameter}_sample_date"] = None
+
         result = prepare_cgwb_location_history(data)
-        self.assertEqual(result.loc[0, "tds_screening_status"], "MISSING")
+        for parameter in ["ph", "tds", "chloride", "sulphate", "hardness"]:
+            self.assertEqual(
+                result.loc[0, f"{parameter}_screening_status"],
+                "MISSING",
+            )
 
     def test_cross_district_values_are_rejected_if_populated(self):
         data = sample_history()
