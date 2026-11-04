@@ -47,7 +47,9 @@ def _prepare(frame, name, labelled):
     if source.isna().any() or source.eq("").any():
         raise ValueError(f"{name} contains blank data_source values.")
 
-    feature_dates = pd.to_datetime(result["feature_as_of_date"], errors="coerce", utc=True)
+    feature_dates = pd.to_datetime(
+        result["feature_as_of_date"], errors="coerce", utc=True, format="mixed"
+    )
     if feature_dates.isna().any():
         raise ValueError(f"{name} has missing or invalid feature_as_of_date values.")
     result["feature_as_of_date"] = feature_dates
@@ -71,8 +73,10 @@ def _prepare(frame, name, labelled):
     for col in ("water_contamination_rate", "groundwater_stress", "previous_contamination"):
         if (result[col] < 0).any() or (result[col] > 1).any():
             raise ValueError(f"{name} {col} must be between 0 and 1.")
-    if (result[["rainfall_7d", "rainfall_normal"]] < 0).any().any():
-        raise ValueError(f"{name} contains negative rainfall values.")
+    if (result["rainfall_7d"] < 0).any():
+        raise ValueError(f"{name} rainfall_7d must be non-negative.")
+    if (result["rainfall_normal"] <= 0).any():
+        raise ValueError(f"{name} rainfall_normal must be greater than zero.")
 
     if labelled:
         status = result["label_review_status"].astype("string").str.strip().str.upper()
@@ -115,9 +119,15 @@ def _prepare(frame, name, labelled):
         if labels.isna().any() or not labels.isin([0, 1]).all() or labels.nunique() != 2:
             raise ValueError(f"{name} ground_truth_label must contain both 0 and 1 only.")
         result["ground_truth_label"] = labels.astype(int)
-        counts = ["population", "water_tests", "contaminated_tests"]
-        if (result[counts] < 0).any().any():
-            raise ValueError(f"{name} has negative population or test counts.")
+        if (result["population"] < 0).any():
+            raise ValueError(f"{name} population must be non-negative.")
+        if (result["water_tests"] <= 0).any():
+            raise ValueError(f"{name} water_tests must be greater than zero.")
+        count_values = result[["water_tests", "contaminated_tests"]].to_numpy(dtype=float)
+        if not np.equal(count_values, np.floor(count_values)).all():
+            raise ValueError(f"{name} water-test counts must be whole numbers.")
+        if (result["contaminated_tests"] < 0).any():
+            raise ValueError(f"{name} contaminated_tests must be non-negative.")
         if (result["contaminated_tests"] > result["water_tests"]).any():
             raise ValueError(f"{name} contaminated_tests cannot exceed water_tests.")
     return result

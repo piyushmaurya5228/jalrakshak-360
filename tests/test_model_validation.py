@@ -148,6 +148,30 @@ class TestIndependentModelValidation(unittest.TestCase):
                 make_data("TRAIN", 12), cal, make_data("TEST", 8, True)
             )
 
+    def test_zero_rainfall_baseline_is_rejected(self):
+        train = make_data("TRAIN", 12)
+        train.loc[0, "rainfall_normal"] = 0
+        with self.assertRaisesRegex(ValueError, "rainfall_normal must be greater than zero"):
+            evaluate_independent_model(
+                train, make_data("CAL", 8, True), make_data("TEST", 8, True)
+            )
+
+    def test_zero_water_tests_are_rejected(self):
+        cal = make_data("CAL", 8, True)
+        cal.loc[0, "water_tests"] = 0
+        with self.assertRaisesRegex(ValueError, "water_tests must be greater than zero"):
+            evaluate_independent_model(
+                make_data("TRAIN", 12), cal, make_data("TEST", 8, True)
+            )
+
+    def test_fractional_water_test_counts_are_rejected(self):
+        cal = make_data("CAL", 8, True)
+        cal.loc[0, "contaminated_tests"] = 1.5
+        with self.assertRaisesRegex(ValueError, "whole numbers"):
+            evaluate_independent_model(
+                make_data("TRAIN", 12), cal, make_data("TEST", 8, True)
+            )
+
     def test_contaminated_tests_cannot_exceed_total(self):
         cal = make_data("CAL", 8, True)
         cal.loc[0, "contaminated_tests"] = 11
