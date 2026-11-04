@@ -166,6 +166,7 @@ class TestIndependentModelValidation(unittest.TestCase):
 
     def test_fractional_water_test_counts_are_rejected(self):
         cal = make_data("CAL", 8, True)
+        cal["contaminated_tests"] = cal["contaminated_tests"].astype(float)
         cal.loc[0, "contaminated_tests"] = 1.5
         with self.assertRaisesRegex(ValueError, "whole numbers"):
             evaluate_independent_model(
