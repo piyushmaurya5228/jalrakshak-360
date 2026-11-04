@@ -1,17 +1,26 @@
-﻿"""JalRakshak 360 what-if scenario engine."""
+"""JalRakshak 360 what-if scenario engine."""
 
+import math
 import pandas as pd
 
 from src.risk_engine import calculate_location_risk
 
 
 def simulate_rainfall(row, rainfall_change_percent):
-    """Simulate a change in 7-day rainfall and recalculate rule-based risk."""
-    simulated = row.copy()
+    """Simulate a valid rainfall change and recalculate rule-based risk."""
+    try:
+        change = float(rainfall_change_percent)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Rainfall change must be a finite numeric percentage.") from exc
 
+    if not math.isfinite(change):
+        raise ValueError("Rainfall change must be a finite numeric percentage.")
+    if change < -100:
+        raise ValueError("Rainfall change cannot reduce rainfall below zero.")
+
+    simulated = row.copy()
     simulated["rainfall_7d"] = (
-        float(row["rainfall_7d"])
-        * (1 + float(rainfall_change_percent) / 100)
+        float(row["rainfall_7d"]) * (1 + change / 100)
     )
 
     result = calculate_location_risk(simulated)
@@ -19,7 +28,7 @@ def simulate_rainfall(row, rainfall_change_percent):
     return {
         "original_rainfall": round(float(row["rainfall_7d"]), 2),
         "simulated_rainfall": round(float(simulated["rainfall_7d"]), 2),
-        "rainfall_change_percent": float(rainfall_change_percent),
+        "rainfall_change_percent": change,
         "risk_score": result["risk_score"],
         "risk_level": result["risk_level"],
         "priority": result["priority"],

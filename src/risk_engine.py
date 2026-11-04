@@ -1,22 +1,37 @@
 """JalRakshak 360 risk scoring engine."""
 
+import math
+
+
+def _finite_number(value, name):
+    """Convert a scoring input to a finite float or reject it."""
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be a finite numeric value.") from exc
+    if not math.isfinite(number):
+        raise ValueError(f"{name} must be a finite numeric value.")
+    return number
+
+
 def clamp(value, minimum=0.0, maximum=100.0):
-    return max(minimum, min(float(value), maximum))
+    return max(minimum, min(_finite_number(value, "Risk component"), maximum))
 
 
 def rainfall_risk(rainfall_7d, rainfall_normal):
     """Convert rainfall anomaly into a smoothly interpolated 0-100 score."""
-    if rainfall_normal <= 0:
-        return 0.0
+    rainfall = _finite_number(rainfall_7d, "Seven-day rainfall")
+    normal = _finite_number(rainfall_normal, "Normal rainfall baseline")
+    if rainfall < 0:
+        raise ValueError("Seven-day rainfall must be non-negative.")
+    if normal <= 0:
+        raise ValueError("Normal rainfall baseline must be greater than zero.")
 
-    anomaly = (
-        (float(rainfall_7d) - float(rainfall_normal))
-        / float(rainfall_normal)
-    ) * 100
+    anomaly = ((rainfall - normal) / normal) * 100
 
     # Preserve gradual scoring below normal rainfall.
     if anomaly <= 0:
-        relative_rainfall = float(rainfall_7d) / float(rainfall_normal)
+        relative_rainfall = rainfall / normal
         return round(clamp(relative_rainfall * 10.0, 0.0, 10.0), 2)
 
     # Preserve existing anchor scores but interpolate between them.
@@ -41,6 +56,9 @@ def rainfall_risk(rainfall_7d, rainfall_normal):
 
 def exposure_risk(population):
     """Convert exposed population into a 0-100 score."""
+    population = _finite_number(population, "Population")
+    if population < 0:
+        raise ValueError("Population values must be non-negative.")
     return clamp((population / 10000) * 100)
 
 
@@ -53,11 +71,11 @@ def calculate_risk(
 ):
     """Calculate the explainable weighted risk score."""
     score = (
-        0.35 * water_risk
-        + 0.25 * rainfall_risk_score
-        + 0.20 * groundwater_risk
-        + 0.10 * historical_risk
-        + 0.10 * exposure_risk_score
+        0.35 * _finite_number(water_risk, "Water risk")
+        + 0.25 * _finite_number(rainfall_risk_score, "Rainfall risk")
+        + 0.20 * _finite_number(groundwater_risk, "Groundwater risk")
+        + 0.10 * _finite_number(historical_risk, "Historical risk")
+        + 0.10 * _finite_number(exposure_risk_score, "Exposure risk")
     )
 
     score = round(clamp(score), 2)
@@ -79,33 +97,37 @@ def calculate_risk(
 
 
 def calculate_location_risk(row):
-    """Calculate risk for one dataframe row."""
-    water = clamp(row["water_contamination_rate"] * 100)
-
-    rain = rainfall_risk(
-        row["rainfall_7d"],
-        row["rainfall_normal"],
+    """Calculate risk for one row, rejecting invalid scoring evidence."""
+    water_rate = _finite_number(
+        row["water_contamination_rate"], "Water contamination rate"
+    )
+    groundwater_rate = _finite_number(
+        row["groundwater_stress"], "Groundwater stress"
+    )
+    water_tests = _finite_number(row["water_tests"], "Water test count")
+    contaminated_tests = _finite_number(
+        row["contaminated_tests"], "Contaminated test count"
     )
 
-    groundwater = clamp(row["groundwater_stress"] * 100)
+    if not 0 <= water_rate <= 1:
+        raise ValueError("Water contamination rate must be between 0 and 1.")
+    if not 0 <= groundwater_rate <= 1:
+        raise ValueError("Groundwater stress must be between 0 and 1.")
+    if water_tests <= 0:
+        raise ValueError("At least one water test is required for risk scoring.")
+    if not 0 <= contaminated_tests <= water_tests:
+        raise ValueError(
+            "Contaminated test count must be between zero and total tests."
+        )
 
-    if row["water_tests"] > 0:
-        historical = (
-            row["contaminated_tests"] / row["water_tests"]
-        ) * 100
-    else:
-        historical = 0.0
-
-    historical = clamp(historical)
-
+    water = clamp(water_rate * 100)
+    rain = rainfall_risk(row["rainfall_7d"], row["rainfall_normal"])
+    groundwater = clamp(groundwater_rate * 100)
+    historical = clamp((contaminated_tests / water_tests) * 100)
     exposure = exposure_risk(row["population"])
 
     score, level, priority = calculate_risk(
-        water,
-        rain,
-        groundwater,
-        historical,
-        exposure,
+        water, rain, groundwater, historical, exposure
     )
 
     return {
