@@ -460,9 +460,12 @@ if len(filtered) > 0:
             )
 
         st.caption(
-            "AI anomaly score is a dataset-relative min-max normalised "
-            "indicator, not a probability or a standalone measure of "
-            "water safety."
+            "AI anomaly score is an empirical percentile relative to the "
+            "Isolation Forest training-score reference. It is a relative "
+            "anomaly-ranking indicator, not a probability or a measure of "
+            "water safety. In this prototype, the model is trained and "
+            "scored on the same dataset, so this is not out-of-sample "
+            "validation."
         )
 
     st.write("### Why was this location flagged?")

@@ -72,6 +72,13 @@ class TestExplainability(unittest.TestCase):
         self.assertIn("explained_final_risk_score", result.columns)
         self.assertNotIn("rule_floor_applied", df.columns)
 
+    def test_anomaly_score_is_described_as_training_reference_percentile(self):
+        result = explain_risk_row(self.row)
+        self.assertEqual(
+            result["anomaly_score_interpretation"],
+            "EMPIRICAL_TRAINING_REFERENCE_PERCENTILE_NOT_PROBABILITY",
+        )
+
     def test_invalid_anomaly_score_is_rejected(self):
         row = self.row.copy()
         row["anomaly_score"] = float("nan")
