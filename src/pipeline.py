@@ -1,15 +1,17 @@
-﻿"""JalRakshak 360 central processing pipeline."""
+"""JalRakshak 360 central processing pipeline."""
 
 import pandas as pd
 
 from src.risk_engine import calculate_location_risk
 from src.anomaly_model import train_anomaly_model, add_anomaly_scores
 from src.risk_fusion import add_fused_risk
+from src.scoring_validation import validate_scoring_inputs
 
 
 def load_and_process_data(path):
-    """Load location data and generate final AI-fused risk scores."""
+    """Load, validate and generate final AI-fused risk scores."""
     df = pd.read_csv(path)
+    validate_scoring_inputs(df)
 
     risk_results = df.apply(
         calculate_location_risk,
