@@ -32,6 +32,7 @@ class TestAnomalyModel(unittest.TestCase):
         model = train_anomaly_model(self.df)
         baseline = add_anomaly_scores(self.df, model)["anomaly_score"]
         extreme = self.df.iloc[[0]].copy()
+        extreme[FEATURES] = extreme[FEATURES].astype("float64")
         extreme.loc[:, FEATURES] = [1.0, 10000.0, 0.1, 1.0, 1.0]
         expanded = pd.concat([self.df, extreme], ignore_index=True)
         expanded_scores = add_anomaly_scores(expanded, model)["anomaly_score"].iloc[:len(self.df)].reset_index(drop=True)
