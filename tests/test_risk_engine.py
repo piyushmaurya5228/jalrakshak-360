@@ -22,9 +22,7 @@ class TestRiskEngine(unittest.TestCase):
         ]
         for value, expected_level, expected_priority in cases:
             with self.subTest(score=value):
-                score, level, priority = calculate_risk(
-                    value, value, value, value, value
-                )
+                score, level, priority = calculate_risk(value, value, value, value, value)
                 self.assertEqual(score, value)
                 self.assertEqual(level, expected_level)
                 self.assertEqual(priority, expected_priority)
@@ -34,6 +32,12 @@ class TestRiskEngine(unittest.TestCase):
         self.assertEqual(score, 0.0)
         self.assertEqual(level, "LOW")
         self.assertEqual(priority, "P3")
+
+    def test_direct_risk_component_outside_scale_is_rejected(self):
+        for value in (-0.1, 100.1):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, "between 0 and 100"):
+                    calculate_risk(value, 0, 0, 0, 0)
 
     def test_zero_rainfall_baseline_is_rejected_directly(self):
         with self.assertRaisesRegex(ValueError, "baseline must be greater than zero"):
